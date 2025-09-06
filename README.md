@@ -3,7 +3,7 @@
 ## Team: Bit Lords
 **Members:**
 - Sarthak Shrestha
--
+- Umang Patel
 -
 -
 
