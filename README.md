@@ -4,6 +4,6 @@
 **Members:**
 - Sarthak Shrestha
 - Umang Patel
--
+- Nikhil Karki
 -
 
