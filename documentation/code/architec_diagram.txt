@@ -1,0 +1,21 @@
+architecture-beta
+%% Creted with mermaidchart.com
+    group auth[Authentication with clerk OAuth or JWT]
+    group webpage(internet)[Web App]
+    group database(cloud)[Database system]
+    group resources(cloud)[Additional Resources]
+
+    service db(database)[SQL based database] in database
+    service resource(internet)[API calls or CDN lib] in resources
+    service node(internet)[Authentication  system] in auth
+    service login(internet)[Sign in and Sign up] in webpage
+    service home(internet)[Home page] in webpage
+    service profile(internet)[user profile information] in webpage
+
+    node:T <-- B:login
+    node:T --> B:home
+    home:T <--> B:profile
+    db:L <--> R:profile
+    db:L <--> R:home
+    resource:L --> R:profile
+    resource:L --> R:home

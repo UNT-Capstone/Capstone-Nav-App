@@ -1,0 +1,59 @@
+---
+config:
+  theme: redux-color
+  look: classic
+---
+%% made with mermaidcharts.com
+erDiagram
+    AUTHENTICATION ||--|| USERS : authenticates
+    USERS ||--O{ ATTENDEES : ATTENDS
+    ATTENDEES }o--|| EVENTS : ATTENDED
+    EVENTS ||--O{ EVENT_DETAILS  : details
+    EVENT_DETAILS }o--|| LOCATIONS  : hosts
+    USERS ||--o{ FAVOURITES : likes
+    EVENTS ||--o{ FAVOURITES : liked_by
+    LOCATIONS ||--o{ FAVOURITES : liked_by
+    AUTHENTICATION {
+        string UID(PK)
+        string username
+        string password
+    }
+    USERS {
+        string UID(FK)
+        string username
+        string first_name
+        string last_name
+        string age
+        string email
+    }
+    EVENTS {
+        string EID(PK)
+        string title
+        string description
+    }
+    LOCATIONS {
+        string LID(PK)
+        string location_name
+        string description
+        int coordinates
+        bool open
+    }
+    ATTENDEES {
+        int AID(PK)
+        string UID(FK)
+        string EID(FK)
+    }
+    EVENT_DETAILS {
+        int EDID(PK)
+        string EID(FK)
+        string LID(FK)
+        date event_data
+        datetime start_time
+        datetime end_time
+    }
+    FAVOURITES {
+        int FID(PK)
+        string EID
+        string UID
+        string LID
+    }
