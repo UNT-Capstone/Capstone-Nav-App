@@ -5,5 +5,5 @@
 - Sarthak Shrestha
 - Umang Patel
 - Nikhil Karki
--
+- Manuel Osorto
 
