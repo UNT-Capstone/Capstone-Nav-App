@@ -1,7 +1,9 @@
-import Image from "next/image";
-
-export default function Home() {
+// Root page
+export default function HomePage() {
   return (
-    <div>Hello World!</div>
+    <div>
+      <h1>Welcome to Capstone Navigation App</h1>
+      <p>This is the home page.</p>
+    </div>
   );
 }
