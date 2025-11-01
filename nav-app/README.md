@@ -34,3 +34,21 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Useful Trouble Shooting Tips
+
+```bash
+# deletes the all stored cache
+rm -rf .next
+# deletes all the node modules
+rm -rf node_modules
+# Cleanly install all the dependencies 
+# with pnpm
+pnpm install
+# with npm
+npm install
+```
+Lock File Discepency between package managers. (npm vs pnpm)
+- pnpm-lock.yaml - This file guarantees the version of all the modules. Used exlusively my pnpm
+- package-lock.json - This file guarantees the verison of all the modules. Used exlusively my npm
+- package.json. Used by both npm and pnpm. Keeps track of all the dependencies used by the project.
