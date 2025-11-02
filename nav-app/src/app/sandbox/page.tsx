@@ -10,7 +10,7 @@ const Page = async () => {
         <Button variant={"outline"}>Hello</Button>
         {JSON.stringify(users)}
       </div>
-    </>
+    </> 
   );
 
 }
