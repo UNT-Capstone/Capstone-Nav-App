@@ -1,10 +1,62 @@
+"use client";
+
 export default function ProfilePage() {
+  const userData = {
+    email: "student@unt.edu",
+    name: "Firstname Lastname",
+    role: "User / Student",
+  };
+
   return (
-    <div className="flex flex-col items-center mt-20">
-      <h1 className="text-3xl font-bold mb-4">Profile</h1>
-      <p>Email: student@unt.edu</p>
-      <p>Name: Firstname Lastname</p>
-      {/* Placeholder for future editable fields */}
+    <div style={{ maxWidth: "600px", margin: "0 auto", padding: "20px" }}>
+      <h1 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "20px" }}>
+        User Profile
+      </h1>
+
+      <div>
+        <h2 style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "10px" }}>
+          Profile Details
+        </h2>
+        <p style={{ marginBottom: "10px" }}>Name: {userData.name}</p>
+        <p style={{ marginBottom: "10px" }}>Role: {userData.role}</p>
+        <p style={{ marginBottom: "10px" }}>Email: {userData.email}</p>
+      </div>
+
+      <hr style={{ margin: "20px 0", border: "1px solid #ccc" }} />
+
+      <div>
+        <h2 style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "10px" }}>
+          Security
+        </h2>
+        <button 
+          style={{ marginRight: "10px", padding: "5px 10px", border: "1px solid #000", background: "none" }} 
+          onClick={handleEditProfile}
+        >
+          Edit Profile
+        </button>
+        <button 
+          style={{ padding: "5px 10px", border: "1px solid #000", background: "none" }} 
+          onClick={handleDeleteAccount}
+        >
+          Delete Account
+        </button>
+      </div>
     </div>
   );
 }
+const handleEditProfile = () => {
+  
+  alert("Edit Profile clicked");
+};
+
+const handleDeleteAccount = () => {
+  const confirmation = window.confirm("Are you sure you want to delete your account?");
+  if (confirmation) {
+  //yet to complete
+    alert("Account deleted successfully.");
+  } else {
+    alert("Account deletion canceled.");
+  }
+};
+
+
