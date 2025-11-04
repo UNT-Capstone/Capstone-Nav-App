@@ -1,3 +1,5 @@
+"use client";
+
 export default function ProfilePage() {
   const userData = {
     email: "student@unt.edu",
@@ -26,13 +28,35 @@ export default function ProfilePage() {
         <h2 style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "10px" }}>
           Security
         </h2>
-        <button style={{ marginRight: "10px", padding: "5px 10px", border: "1px solid #000", background: "none" }}>
-          Change Password
+        <button 
+          style={{ marginRight: "10px", padding: "5px 10px", border: "1px solid #000", background: "none" }} 
+          onClick={handleEditProfile}
+        >
+          Edit Profile
         </button>
-        <button style={{ padding: "5px 10px", border: "1px solid #000", background: "none" }}>
+        <button 
+          style={{ padding: "5px 10px", border: "1px solid #000", background: "none" }} 
+          onClick={handleDeleteAccount}
+        >
           Delete Account
         </button>
       </div>
     </div>
   );
 }
+const handleEditProfile = () => {
+  
+  alert("Edit Profile clicked");
+};
+
+const handleDeleteAccount = () => {
+  const confirmation = window.confirm("Are you sure you want to delete your account?");
+  if (confirmation) {
+  //yet to complete
+    alert("Account deleted successfully.");
+  } else {
+    alert("Account deletion canceled.");
+  }
+};
+
+
