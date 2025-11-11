@@ -6,9 +6,9 @@ export default function HomePage() {
   const router = useRouter();
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 text-center">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-[#e6f4ec] to-[#c8e6d4] text-center">
       <motion.h1
-        className="text-4xl font-bold mb-4 text-blue-700"
+        className="text-4xl font-bold mb-4 text-[#00853E]"
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
@@ -28,8 +28,8 @@ export default function HomePage() {
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        onClick={() => router.push("/signup")}  // 👈 Go to /signup instead
-        className="px-6 py-3 bg-blue-600 text-white rounded-2xl shadow-md hover:bg-blue-700 transition"
+        onClick={() => router.push("/signup")}
+        className="px-6 py-3 bg-[#00853E] text-white rounded-2xl shadow-md hover:bg-[#007338] transition font-semibold"
       >
         Get Started
       </motion.button>

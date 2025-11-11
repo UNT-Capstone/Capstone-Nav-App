@@ -6,14 +6,14 @@ export default function SignupPage() {
   const router = useRouter();
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 p-6">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-[#e6f4ec] to-[#c8e6d4] p-6">
       <motion.div
         className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md text-center"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1 className="text-3xl font-bold mb-6 text-blue-700">
+        <h1 className="text-3xl font-bold mb-6 text-[#00853E]">
           Create an Account
         </h1>
 
@@ -21,21 +21,21 @@ export default function SignupPage() {
           <input
             type="text"
             placeholder="Full Name"
-            className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#00A85D]"
           />
           <input
             type="email"
             placeholder="Email"
-            className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#00A85D]"
           />
           <input
             type="password"
             placeholder="Password"
-            className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#00A85D]"
           />
           <button
             type="submit"
-            className="bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
+            className="bg-[#00853E] text-white py-2 rounded-lg font-semibold hover:bg-[#007338] transition"
           >
             Sign Up
           </button>
@@ -45,7 +45,7 @@ export default function SignupPage() {
           Already have an account?{" "}
           <button
             onClick={() => router.push("/login")}
-            className="text-blue-600 hover:underline font-medium"
+            className="text-[#00853E] hover:underline font-medium"
           >
             Log in here
           </button>
