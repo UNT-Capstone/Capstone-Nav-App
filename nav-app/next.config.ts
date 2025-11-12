@@ -3,11 +3,10 @@ import type { NextConfig } from 'next';
 const cwd = __dirname;
 
 const config: NextConfig = {
-  // rest of your config
+  reactStrictMode: false, 
   turbopack: {
-    root: cwd
-  }
+    root: cwd,
+  },
 };
 
-// module.exports = config;
 export default config;
