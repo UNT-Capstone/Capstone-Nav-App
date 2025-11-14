@@ -1,11 +1,5 @@
-// Source: https://www.prisma.io/docs/guides/nextjs#26-set-up-prisma-client
-// This file creates a Prisma Client and attaches it to the global object so
-// that only one instance of the client is created in your application. This helps
-// resolve issues with hot reloading that can occur when using Prisma ORM with 
-// Next.js in development mode.
 
-import { PrismaClient } from '@/lib/generated/prisma/client'
-
+import { PrismaClient } from '../../lib/generated/prisma/client';// Adjust the path as necessary
 const globalForPrisma = global as unknown as { 
     prisma: PrismaClient
 }
@@ -15,3 +9,4 @@ const prisma = globalForPrisma.prisma || new PrismaClient()
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 export default prisma
+
