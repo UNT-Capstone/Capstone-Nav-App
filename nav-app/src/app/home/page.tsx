@@ -1,4 +1,7 @@
-export default function HomePage() {
+import { requireAuth } from "@/src/lib/auth-utils";
+
+export default async function HomePage() {
+  await requireAuth();
   return (
     <div className="flex flex-col items-center mt-20">
       <h1 className="text-3xl font-bold text-[#00853E]">Welcome to UNT Navigator</h1>

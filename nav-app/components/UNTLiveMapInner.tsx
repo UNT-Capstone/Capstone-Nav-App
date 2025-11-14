@@ -16,7 +16,7 @@ export default function UNTLiveMap() {
   const untPosition: [number, number] = [33.2104, -97.1503];
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-blue-50 to-blue-100">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-linear-to-b from-blue-50 to-blue-100">
       <h1 className="text-3xl font-bold mb-4 text-blue-700">
         UNT Campus Map
       </h1>

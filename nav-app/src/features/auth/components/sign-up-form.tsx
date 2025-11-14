@@ -6,6 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { motion } from "framer-motion";
+import { authClient } from "@/src/lib/auth-client";
+import { toast } from "sonner";
 
 // defining the shape of the form 
 const signinSchema = z.object({
@@ -35,7 +37,22 @@ export default function SignupForm() {
   });
 
   const onSubmit = async (values: SigninFormValues) => {
-    console.log(values);
+    await authClient.signUp.email(
+      {
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        callbackURL: "/",
+      },
+      {
+        onSuccess: () => {
+          router.push("/home")
+        },
+        onError: (ctx) => {
+          toast.error(ctx.error.message)
+        }
+      }
+    );
   }
 
   const isPending = form.formState.isSubmitting;

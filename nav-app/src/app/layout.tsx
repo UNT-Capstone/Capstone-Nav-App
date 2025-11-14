@@ -2,6 +2,7 @@
 import './globals.css';
 import { ReactNode } from 'react';
 import { TRPCReactProvider } from '@/src/trpc/client';
+import { Toaster } from '@/components/ui/sonner';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             </nav>
           </header>
           <main style={{ padding: '20px' }}>{children}</main>
+          <Toaster/>
         </TRPCReactProvider>
       </body>
     </html>

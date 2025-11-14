@@ -6,7 +6,7 @@ export default function HomePage() {
   const router = useRouter();
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-[#e6f4ec] to-[#c8e6d4] text-center">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-linear-to-b from-[#e6f4ec] to-[#c8e6d4] text-center">
       <motion.h1
         className="text-4xl font-bold mb-4 text-[#00853E]"
         initial={{ opacity: 0, y: -30 }}
