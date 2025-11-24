@@ -1,18 +1,17 @@
+"use client";
+
 import { useEffect } from "react";
 
 const UntEventsWidget: React.FC = () => {
   useEffect(() => {
-    // Create the script element
     const script = document.createElement("script");
     script.src =
       "https://calendar.unt.edu/widget/view?schools=unt&types=38308629587302%2C38953473135148%2C38953471579943%2C38308629595497&days=31&num=50&experience=inperson&container=localist-widget-5173765&template=modern";
     script.defer = true;
     script.type = "text/javascript";
 
-    // Append to the container
     document.body.appendChild(script);
 
-    // Cleanup on unmount
     return () => {
       document.body.removeChild(script);
     };
@@ -36,9 +35,9 @@ const UntEventsWidget: React.FC = () => {
           <img
             src="//d3e1o4bcbhmj8g.cloudfront.net/assets/platforms/default/about/widget_footer.png"
             alt="Localist Online Calendar Software"
-            style={{ verticalAlign: "middle" }}
             width={81}
             height={23}
+            style={{ verticalAlign: "middle" }}
           />
         </a>
       </div>
