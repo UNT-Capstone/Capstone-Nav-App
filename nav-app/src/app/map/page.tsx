@@ -1,5 +1,5 @@
 import UNTLiveMap from "@/components/UNTLiveMap";
-import UntEventsWidget from "@/components/UNTEventsWidgets";
+import UNTEventsWidget from "@/components/UNTEventsWidgets";
 import { requireAuth } from "@/src/lib/auth-utils";
 
 export default async function MapPage() {
@@ -14,7 +14,7 @@ export default async function MapPage() {
 
       {/* Events widget at the bottom */}
       <div className="w-full max-w-5xl">
-        <UntEventsWidget />
+        <UNTEventsWidget />
       </div>
     </main>
   );
