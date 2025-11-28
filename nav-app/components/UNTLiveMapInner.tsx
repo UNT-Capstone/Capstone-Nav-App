@@ -1,8 +1,8 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
-
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -13,7 +13,17 @@ L.Icon.Default.mergeOptions({
 });
 
 export default function UNTLiveMap() {
-  const untPosition: [number, number] = [33.2104, -97.1503];
+  const searchParams = useSearchParams();
+  const lat = searchParams.get("lat");
+  const lng = searchParams.get("lng");
+  const eventTitle = searchParams.get("event");
+
+  // Default UNT campus position
+  const defaultPosition: [number, number] = [33.2104, -97.1503];
+
+  // Use event coordinates if provided
+  const eventPosition: [number, number] =
+    lat && lng ? [parseFloat(lat), parseFloat(lng)] : defaultPosition;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-linear-to-b from-blue-50 to-blue-100">
@@ -22,7 +32,7 @@ export default function UNTLiveMap() {
       </h1>
 
       <MapContainer
-        center={untPosition}
+        center={eventPosition}
         zoom={16}
         scrollWheelZoom={true}
         className="w-[90vw] h-[75vh] rounded-2xl shadow-lg z-0"
@@ -31,9 +41,18 @@ export default function UNTLiveMap() {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
         />
-        <Marker position={untPosition}>
+
+        {/* Default UNT marker */}
+        <Marker position={defaultPosition}>
           <Popup>University of North Texas</Popup>
         </Marker>
+
+        {/* Event marker */}
+        {lat && lng && eventTitle && (
+          <Marker position={eventPosition}>
+            <Popup>{eventTitle}</Popup>
+          </Marker>
+        )}
       </MapContainer>
     </div>
   );
