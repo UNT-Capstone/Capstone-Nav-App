@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -11,6 +12,18 @@ L.Icon.Default.mergeOptions({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
+
+const FlyToMarker: React.FC<{ position: [number, number] }> = ({ position }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (position) {
+      map.flyTo(position, 18, { duration: 1.5 }); // zoom 18, 1.5s animation
+    }
+  }, [position, map]);
+
+  return null;
+};
 
 export default function UNTLiveMap() {
   const searchParams = useSearchParams();
@@ -32,7 +45,7 @@ export default function UNTLiveMap() {
       </h1>
 
       <MapContainer
-        center={eventPosition}
+        center={defaultPosition}
         zoom={16}
         scrollWheelZoom={true}
         className="w-[90vw] h-[75vh] rounded-2xl shadow-lg z-0"
@@ -53,6 +66,9 @@ export default function UNTLiveMap() {
             <Popup>{eventTitle}</Popup>
           </Marker>
         )}
+
+        {/* Fly smoothly to event */}
+        {lat && lng && <FlyToMarker position={eventPosition} />}
       </MapContainer>
     </div>
   );
