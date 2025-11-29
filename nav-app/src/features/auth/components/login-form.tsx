@@ -34,7 +34,7 @@ export default function LoginForm() {
       {
         email: values.email,
         password: values.password,
-        callbackURL: "/",
+        callbackURL: "/home",
       }, {
         onSuccess: () => {
           router.push("/home");

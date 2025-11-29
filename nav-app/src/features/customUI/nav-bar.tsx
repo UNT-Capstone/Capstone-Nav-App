@@ -8,8 +8,9 @@ import {
 } from "@/components/ui/navigation-menu";
 import { FaUserCircle } from 'react-icons/fa';
 import { isAuth } from "@/src/lib/auth-utils";
+import { LogoutButton } from "../auth/components/logout-button";
 
-const ConditionalElements = ({ authenticated }) => {
+const ConditionalElements = ({ authenticated } : {authenticated:boolean}) => {
   if (!authenticated) {
     return (
       <>
@@ -41,13 +42,25 @@ const ConditionalElements = ({ authenticated }) => {
           </li>
           <li>
             <NavigationMenuLink asChild>
-              <a href="/">Log out</a>
+              <LogoutButton/>
             </NavigationMenuLink>
           </li>
         </ul>
       </NavigationMenuContent>
     </NavigationMenuItem>
   );
+}
+
+const ConditionalRedirect = ({ authenticated } : {authenticated:boolean}) => {
+  const href = authenticated ? "/home" : "/";
+  return (
+    <NavigationMenuLink asChild>
+      <a href={href}>
+        Nav-App
+      </a>
+    </NavigationMenuLink>
+  )
+
 }
 
 const NavBar = async () => {
@@ -58,9 +71,7 @@ const NavBar = async () => {
       <NavigationMenu>
         <NavigationMenuList>
           <NavigationMenuItem>
-            <NavigationMenuLink asChild>
-              <a href="/">Nav-App</a>
-            </NavigationMenuLink>
+            <ConditionalRedirect authenticated={authenticated} />
           </NavigationMenuItem>
         </NavigationMenuList>
       </NavigationMenu>

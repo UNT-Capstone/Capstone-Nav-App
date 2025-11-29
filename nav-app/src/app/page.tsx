@@ -40,7 +40,7 @@ export default function HomePage() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => router.push("/map")}
-          className="px-6 py-3 bg-[#00A86B] text-white rounded-2xl shadow-md hover:bg-[#008F55] transition font-semibold"
+          className="px-6 py-3 bg-[#00853E] text-white rounded-2xl shadow-md hover:bg-[#007338] transition font-semibold"
         >
           View Map
         </motion.button>
