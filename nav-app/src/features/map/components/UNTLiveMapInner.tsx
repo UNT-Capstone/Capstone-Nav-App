@@ -40,15 +40,12 @@ export default function UNTLiveMap() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-linear-to-b from-blue-50 to-blue-100">
-      <h1 className="text-3xl font-bold mb-4 text-blue-700">
-        UNT Campus Map
-      </h1>
 
       <MapContainer
         center={defaultPosition}
         zoom={16}
         scrollWheelZoom={true}
-        className="w-[90vw] h-[75vh] rounded-2xl shadow-lg z-0"
+        className="w-[90vw] h-[90vh] rounded-2xl shadow-lg z-0"
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

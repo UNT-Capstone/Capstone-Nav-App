@@ -8,7 +8,8 @@ import {
 } from "@/components/ui/navigation-menu";
 import { FaUserCircle } from 'react-icons/fa';
 import { isAuth } from "@/src/lib/auth-utils";
-import { LogoutButton } from "../auth/components/logout-button";
+import { LogoutButton } from "../../auth/components/logout-button";
+import Link from "next/link";
 
 const ConditionalElements = ({ authenticated } : {authenticated:boolean}) => {
   if (!authenticated) {
@@ -16,12 +17,12 @@ const ConditionalElements = ({ authenticated } : {authenticated:boolean}) => {
       <>
         <NavigationMenuItem>
           <NavigationMenuLink asChild>
-            <a href="/login">Login</a>
+            <Link href="/login">Login</Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
         <NavigationMenuItem>
           <NavigationMenuLink asChild>
-            <a href="/signup">Signup</a>
+            <Link href="/signup">Signup</Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
       </>
@@ -37,7 +38,7 @@ const ConditionalElements = ({ authenticated } : {authenticated:boolean}) => {
         <ul className="grid w-[75px] gap-4">
           <li>
             <NavigationMenuLink asChild>
-              <a href="/profile">Profile</a>
+              <Link href="/profile">Profile</Link>
             </NavigationMenuLink>
           </li>
           <li>
@@ -55,9 +56,9 @@ const ConditionalRedirect = ({ authenticated } : {authenticated:boolean}) => {
   const href = authenticated ? "/home" : "/";
   return (
     <NavigationMenuLink asChild>
-      <a href={href}>
+      <Link href={href}>
         Nav-App
-      </a>
+      </Link>
     </NavigationMenuLink>
   )
 
