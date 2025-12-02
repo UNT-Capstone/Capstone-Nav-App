@@ -1,6 +1,8 @@
 import React from 'react';
+import { requireAuth } from '@/src/lib/auth-utils';
 
-const ProfilePage = () => {
+const ProfilePage = async () => {
+  await requireAuth();
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="max-w-4xl mx-auto py-8 px-4">

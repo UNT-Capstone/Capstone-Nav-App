@@ -45,7 +45,7 @@ const UNTEventsWidget: React.FC = () => {
       query.set("lat", event.coords[0].toString());
       query.set("lng", event.coords[1].toString());
     }
-    router.push(`/map?${query.toString()}`);
+    router.push(`/home?${query.toString()}`);
   };
 
   return (

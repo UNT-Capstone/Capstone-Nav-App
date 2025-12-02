@@ -64,19 +64,21 @@ import { getQueryClient, trpc } from "@/src/trpc/server";
 import { Client } from "./test_client";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { Suspense } from "react";
+import { requireAuth} from "@/src/lib/auth-utils";
 
 const Page = async () => {
+  await requireAuth();
   const queryClient = getQueryClient();
   void queryClient.prefetchQuery(trpc.getUsers.queryOptions());
 
   return (
-    <div>
+    <>
       <HydrationBoundary state={dehydrate(queryClient)}>
         <Suspense fallback={<p>loading....</p>}>
           <Client/>
         </Suspense>
       </HydrationBoundary>
-    </div>
+    </>
   )
 }
 

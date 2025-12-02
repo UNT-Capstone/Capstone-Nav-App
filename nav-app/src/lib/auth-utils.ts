@@ -23,3 +23,15 @@ export const requireUnauth = async () => {
     redirect("/home");
   }
 };
+
+export const isAuth = async () => {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (session) {
+    return true;
+  } else {
+    return false;
+  }
+};

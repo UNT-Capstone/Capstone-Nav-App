@@ -42,7 +42,7 @@ export default function SignupForm() {
         name: values.name,
         email: values.email,
         password: values.password,
-        callbackURL: "/",
+        callbackURL: "/home",
       },
       {
         onSuccess: () => {
