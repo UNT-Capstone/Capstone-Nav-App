@@ -1,18 +1,19 @@
-import UNTLiveMap from "@/components/UNTLiveMap";
-import UNTEventsWidget from "@/components/UNTEventsWidgets";
-import { requireAuth } from "@/src/lib/auth-utils";
+"use client";
 
-export default async function MapPage() {
-  await requireAuth();
+import { useState } from "react";
+import UNTLiveMap from "@/components/UNTLiveMap";
+import UNTSearchBar from "@/components/UNTSearchBar";
+import UNTEventsWidget from "@/components/UNTEventsWidgets";
+
+export default function MapPage() {
+  const [selectedLocation, setSelectedLocation] = useState(null);
 
   return (
     <main className="flex flex-col items-center p-4 space-y-6 w-full">
-      {/* Map at the top */}
-      <div className="w-full flex justify-center">
-        <UNTLiveMap />
-      </div>
+      <UNTSearchBar onSelect={setSelectedLocation} />
 
-      {/* Events widget at the bottom */}
+      <UNTLiveMap selectedLocation={selectedLocation} />
+
       <div className="w-full max-w-5xl">
         <UNTEventsWidget />
       </div>
