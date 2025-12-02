@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import UNTSearchBar, { LOCATIONS } from "./UNTSearchBar";
@@ -28,6 +28,9 @@ const FlyToMarker: React.FC<{ position: [number, number] }> = ({ position }) => 
 
 export default function UNTLiveMap() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
   const lat = searchParams.get("lat");
   const lng = searchParams.get("lng");
   const eventTitle = searchParams.get("event");
@@ -36,22 +39,31 @@ export default function UNTLiveMap() {
   const eventPosition: [number, number] =
     lat && lng ? [parseFloat(lat), parseFloat(lng)] : defaultPosition;
 
-  // Added states for search bar 
+  // ---------- State for search selection ----------
   const [selectedPosition, setSelectedPosition] = useState<[number, number] | null>(
     null
   );
   const [selectedName, setSelectedName] = useState<string | null>(null);
 
+  // ---------- Handler to update selection and URL ----------
+  const handleSelect = (loc: { name: string; lat: number; lng: number }) => {
+    setSelectedPosition([loc.lat, loc.lng]);
+    setSelectedName(loc.name);
+
+    // Update URL params safely (App Router)
+    const params = new URLSearchParams();
+    params.set("lat", loc.lat.toString());
+    params.set("lng", loc.lng.toString());
+    params.set("event", loc.name);
+
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen bg-linear-to-b from-blue-50 to-blue-100">
       
       {/* ---------- Search bar ---------- */}
-      <UNTSearchBar
-        onSelect={(lat, lng, name) => {
-          setSelectedPosition([lat, lng]);
-          setSelectedName(name);
-        }}
-      />
+      <UNTSearchBar onSelect={handleSelect} />
 
       {/* ---------- Map ---------- */}
       <MapContainer
@@ -70,7 +82,7 @@ export default function UNTLiveMap() {
           <Popup>University of North Texas</Popup>
         </Marker>
 
-        {/* Event marker */}
+        {/* Event marker from URL */}
         {lat && lng && eventTitle && (
           <Marker position={eventPosition}>
             <Popup>{eventTitle}</Popup>
