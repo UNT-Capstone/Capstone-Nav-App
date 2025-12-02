@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 
@@ -13,36 +12,34 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
+// FlyTo helper
 const FlyToMarker: React.FC<{ position: [number, number] }> = ({ position }) => {
   const map = useMap();
 
   useEffect(() => {
     if (position) {
-      map.flyTo(position, 18, { duration: 1.5 }); // zoom 18, 1.5s animation
+      map.flyTo(position, 18, { duration: 1.5 });
     }
   }, [position, map]);
 
   return null;
 };
 
-export default function UNTLiveMap() {
-  const searchParams = useSearchParams();
-  const lat = searchParams.get("lat");
-  const lng = searchParams.get("lng");
-  const eventTitle = searchParams.get("event");
-
+export default function UNTLiveMapInner({
+  selectedLocation,
+}: {
+  selectedLocation?: { lat: number; lng: number; name: string } | null;
+}) {
   // Default UNT campus position
   const defaultPosition: [number, number] = [33.2104, -97.1503];
 
-  // Use event coordinates if provided
-  const eventPosition: [number, number] =
-    lat && lng ? [parseFloat(lat), parseFloat(lng)] : defaultPosition;
+  const searchPosition: [number, number] | null = selectedLocation
+    ? [selectedLocation.lat, selectedLocation.lng]
+    : null;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-linear-to-b from-blue-50 to-blue-100">
-      <h1 className="text-3xl font-bold mb-4 text-blue-700">
-        UNT Campus Map
-      </h1>
+      <h1 className="text-3xl font-bold mb-4 text-blue-700">UNT Campus Map</h1>
 
       <MapContainer
         center={defaultPosition}
@@ -55,20 +52,20 @@ export default function UNTLiveMap() {
           attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
         />
 
-        {/* Default UNT marker */}
+        {/* Default UNT Marker */}
         <Marker position={defaultPosition}>
           <Popup>University of North Texas</Popup>
         </Marker>
 
-        {/* Event marker */}
-        {lat && lng && eventTitle && (
-          <Marker position={eventPosition}>
-            <Popup>{eventTitle}</Popup>
+        {/* Search result marker */}
+        {searchPosition && selectedLocation && (
+          <Marker position={searchPosition}>
+            <Popup>{selectedLocation.name}</Popup>
           </Marker>
         )}
 
-        {/* Fly smoothly to event */}
-        {lat && lng && <FlyToMarker position={eventPosition} />}
+        {/* Smooth fly animation */}
+        {searchPosition && <FlyToMarker position={searchPosition} />}
       </MapContainer>
     </div>
   );
