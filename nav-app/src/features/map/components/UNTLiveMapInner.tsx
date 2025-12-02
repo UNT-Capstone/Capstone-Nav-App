@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
+import UNTSearchBar, { LOCATIONS } from "./UNTSearchBar";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -18,7 +19,7 @@ const FlyToMarker: React.FC<{ position: [number, number] }> = ({ position }) => 
 
   useEffect(() => {
     if (position) {
-      map.flyTo(position, 18, { duration: 1.5 }); // zoom 18, 1.5s animation
+      map.flyTo(position, 18, { duration: 1.5 });
     }
   }, [position, map]);
 
@@ -31,16 +32,28 @@ export default function UNTLiveMap() {
   const lng = searchParams.get("lng");
   const eventTitle = searchParams.get("event");
 
-  // Default UNT campus position
   const defaultPosition: [number, number] = [33.2104, -97.1503];
-
-  // Use event coordinates if provided
   const eventPosition: [number, number] =
     lat && lng ? [parseFloat(lat), parseFloat(lng)] : defaultPosition;
 
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-linear-to-b from-blue-50 to-blue-100">
+  // Added states for search bar 
+  const [selectedPosition, setSelectedPosition] = useState<[number, number] | null>(
+    null
+  );
+  const [selectedName, setSelectedName] = useState<string | null>(null);
 
+  return (
+    <div className="relative flex flex-col items-center justify-center min-h-screen bg-linear-to-b from-blue-50 to-blue-100">
+      
+      {/* ---------- Search bar ---------- */}
+      <UNTSearchBar
+        onSelect={(lat, lng, name) => {
+          setSelectedPosition([lat, lng]);
+          setSelectedName(name);
+        }}
+      />
+
+      {/* ---------- Map ---------- */}
       <MapContainer
         center={defaultPosition}
         zoom={16}
@@ -66,6 +79,16 @@ export default function UNTLiveMap() {
 
         {/* Fly smoothly to event */}
         {lat && lng && <FlyToMarker position={eventPosition} />}
+
+        {/* Marker & fly for search bar selection */}
+        {selectedPosition && selectedName && (
+          <>
+            <Marker position={selectedPosition}>
+              <Popup>{selectedName}</Popup>
+            </Marker>
+            <FlyToMarker position={selectedPosition} />
+          </>
+        )}
       </MapContainer>
     </div>
   );
