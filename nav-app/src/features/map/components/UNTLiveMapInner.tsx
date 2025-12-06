@@ -5,6 +5,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import UNTSearchBar, { LOCATIONS } from "./UNTSearchBar";
+import UserMarker  from "../../navigation/components/UserMarker";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -81,6 +82,8 @@ export default function UNTLiveMap() {
         <Marker position={defaultPosition}>
           <Popup>University of North Texas</Popup>
         </Marker>
+
+        < UserMarker />
 
         {/* Event marker from URL */}
         {lat && lng && eventTitle && (
