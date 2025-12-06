@@ -3,7 +3,7 @@ import type { NextConfig } from 'next';
 const cwd = __dirname;
 
 const config: NextConfig = {
-  reactStrictMode: false, 
+  reactStrictMode: true, 
   turbopack: {
     root: cwd,
   },
