@@ -1,5 +1,5 @@
 import { requireAuth } from "@/src/lib/auth-utils";
-import UNTLiveMap from "@/src/features/map/components/UNTLiveMapInner";
+import UNTLiveMap from "@/src/features/map/components/UNTLiveMap";
 import UNTEventsWidget from "@/src/features/map/components/UNTEventsWidgets";
 
 export default async function HomePage() {

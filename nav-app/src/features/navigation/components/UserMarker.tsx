@@ -16,7 +16,7 @@ const customIcon = divIcon({
 const UserMarker = () => {
   const {coords, isGeolocationAvailable, isGeolocationEnabled} = useGeolocated({
     positionOptions: {
-      enableHighAccuracy: false,
+      enableHighAccuracy: true,
     },
     userDecisionTimeout: 5000,
     watchPosition: true
