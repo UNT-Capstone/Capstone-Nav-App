@@ -1,4 +1,4 @@
-import UNTLiveMap from "@/src/features/map/components/UNTLiveMapInner";
+import UNTLiveMap from "@/src/features/map/components/UNTLiveMap";
 import UNTEventsWidget from "@/src/features/map/components/UNTEventsWidgets";
 import { requireAuth } from "@/src/lib/auth-utils";
 

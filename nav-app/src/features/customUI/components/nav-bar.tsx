@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import { FaUserCircle } from 'react-icons/fa';
 import { isAuth } from "@/src/lib/auth-utils";
-import { LogoutButton } from "../../auth/components/logout-button";
+import { LogoutButton } from "@/src/features/auth/components/logout-button";
 import Link from "next/link";
 
 const ConditionalElements = ({ authenticated } : {authenticated:boolean}) => {
