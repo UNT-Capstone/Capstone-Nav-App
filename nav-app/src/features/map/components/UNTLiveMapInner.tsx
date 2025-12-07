@@ -15,7 +15,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-const FlyToMarker: React.FC<{ position: [number, number] }> = ({ position }) => {
+export const FlyToMarker: React.FC<{ position: [number, number] }> = ({ position }) => {
   const map = useMap();
 
   useEffect(() => {

@@ -4,6 +4,7 @@ import { FaUserCircle } from 'react-icons/fa';
 import { Marker, Popup } from "react-leaflet";
 import ReactDOMServer from 'react-dom/server';
 import { divIcon } from 'leaflet';
+import { FlyToMarker } from "../../map/components/UNTLiveMapInner";
 
 const iconMarkup = ReactDOMServer.renderToStaticMarkup(<FaUserCircle size={32} className="text-blue-400" />);
 const customIcon = divIcon({
@@ -23,9 +24,12 @@ const UserMarker = () => {
 
   if (isGeolocationAvailable && isGeolocationEnabled && coords){
     return (
-      <Marker position={[coords.latitude, coords.longitude]} icon={customIcon}>
-        <Popup>Your current location</Popup>
-      </Marker>
+      <>
+        <Marker position={[coords.latitude, coords.longitude]} icon={customIcon}>
+          <Popup>Your current location</Popup>
+        </Marker>
+        <FlyToMarker position={[coords.latitude, coords.longitude]}/>
+      </>
     );
   }
   return (null);
