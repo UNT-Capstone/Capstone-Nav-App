@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 
-
-
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -13,8 +11,10 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-
-const FlyToMarker: React.FC<{ position: [number, number] }> = ({ position }) => {
+/* ---------------- Fly to marker (EXPORTED) ---------------- */
+export const FlyToMarker: React.FC<{ position: [number, number] }> = ({
+  position,
+}) => {
   const map = useMap();
 
   useEffect((): void => {
@@ -24,7 +24,7 @@ const FlyToMarker: React.FC<{ position: [number, number] }> = ({ position }) => 
   return null;
 };
 
-
+/* ---------------- Routing ---------------- */
 const Routing = ({
   start,
   end,
@@ -36,34 +36,44 @@ const Routing = ({
 
   useEffect((): void | (() => void) => {
     if (!start || !end) return;
-
- 
     if (typeof window === "undefined") return;
 
-  
-    require("leaflet-routing-machine");
+    let control: any;
 
-    const control = (L as any).Routing.control({
-      waypoints: [
-        L.latLng(start[0], start[1]),
-        L.latLng(end[0], end[1]),
-      ],
-      routeWhileDragging: false,
-      lineOptions: {
-        styles: [{ color: "#2563eb", weight: 4 }],
-      } as any,
-      createMarker: (_: number, wp: any) => L.marker(wp.latLng),
-    }).addTo(map);
+    // VS Code-friendly dynamic import
+    const loadRouting = async () => {
+      try {
+        await import("leaflet-routing-machine");
+
+        control = (L as any).Routing.control({
+          waypoints: [
+            L.latLng(start[0], start[1]),
+            L.latLng(end[0], end[1]),
+          ],
+          routeWhileDragging: false,
+          lineOptions: {
+            styles: [{ color: "#2563eb", weight: 4 }],
+          } as any,
+          createMarker: (_: number, wp: any) => L.marker(wp.latLng),
+        }).addTo(map);
+      } catch (err) {
+        console.error("Failed to load routing machine:", err);
+      }
+    };
+
+    loadRouting();
 
     return () => {
-      map.removeControl(control);
+      if (control) {
+        map.removeControl(control);
+      }
     };
   }, [map, start, end]);
 
   return null;
 };
 
-
+/* ---------------- Click to get coordinates ---------------- */
 const ClickToGetCoords = () => {
   const map = useMap();
 
@@ -78,15 +88,13 @@ const ClickToGetCoords = () => {
     };
 
     map.on("click", onClick);
-    return () => {
-      map.off("click", onClick);
-    };
+    return () => map.off("click", onClick);
   }, [map]);
 
   return null;
 };
 
-
+/* ---------------- Main Component ---------------- */
 export default function UNTLiveMapInner() {
   const defaultPosition: [number, number] = [33.2104, -97.1503];
 
@@ -125,9 +133,7 @@ export default function UNTLiveMapInner() {
       { enableHighAccuracy: true }
     );
 
-    return () => {
-      navigator.geolocation.clearWatch(watchId);
-    };
+    return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
   return (
