@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
-import "leaflet-routing-machine";
+
+
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -12,16 +13,18 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-// Smoothly fly to a marker
+
 const FlyToMarker: React.FC<{ position: [number, number] }> = ({ position }) => {
   const map = useMap();
-  useEffect(() => {
+
+  useEffect((): void => {
     map.flyTo(position, 18, { duration: 1.5 });
   }, [position, map]);
+
   return null;
 };
 
-// Routing between two points
+
 const Routing = ({
   start,
   end,
@@ -30,79 +33,106 @@ const Routing = ({
   end: [number, number];
 }) => {
   const map = useMap();
-  useEffect(() => {
+
+  useEffect((): void | (() => void) => {
     if (!start || !end) return;
+
+ 
+    if (typeof window === "undefined") return;
+
+  
+    require("leaflet-routing-machine");
+
     const control = (L as any).Routing.control({
-      waypoints: [L.latLng(start[0], start[1]), L.latLng(end[0], end[1])],
+      waypoints: [
+        L.latLng(start[0], start[1]),
+        L.latLng(end[0], end[1]),
+      ],
       routeWhileDragging: false,
-      lineOptions: { styles: [{ color: "#2563eb", weight: 4 }] },
-      createMarker: (i: number, wp: any) => L.marker(wp.latLng),
+      lineOptions: {
+        styles: [{ color: "#2563eb", weight: 4 }],
+      } as any,
+      createMarker: (_: number, wp: any) => L.marker(wp.latLng),
     }).addTo(map);
-    return () => map.removeControl(control);
+
+    return () => {
+      map.removeControl(control);
+    };
   }, [map, start, end]);
+
   return null;
 };
 
-// Click-to-get-coordinates
+
 const ClickToGetCoords = () => {
   const map = useMap();
 
-  useEffect(() => {
+  useEffect((): void | (() => void) => {
     const onClick = (e: any) => {
       const { lat, lng } = e.latlng;
-      const coordsText = `Latitude: ${lat.toFixed(6)}, Longitude: ${lng.toFixed(6)}`;
+      const coordsText = `Latitude: ${lat.toFixed(
+        6
+      )}, Longitude: ${lng.toFixed(6)}`;
       console.log(coordsText);
       alert(coordsText);
     };
 
     map.on("click", onClick);
-    return () => map.off("click", onClick);
+    return () => {
+      map.off("click", onClick);
+    };
   }, [map]);
 
   return null;
 };
 
-// --- Main Component ---
+
 export default function UNTLiveMapInner() {
   const defaultPosition: [number, number] = [33.2104, -97.1503];
 
-  const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
-  const [destination, setDestination] = useState<[number, number] | null>(null);
+  const [userPosition, setUserPosition] =
+    useState<[number, number] | null>(null);
+  const [destination, setDestination] =
+    useState<[number, number] | null>(null);
   const [selectedLocation, setSelectedLocation] = useState("");
 
   const locations: Record<string, [number, number]> = {
     "Willis Library": [33.209929, -97.149024],
     "Pohl Recreation Center": [33.21207, -97.15404],
-    "University Union": [33.210600, -97.147418],
+    "University Union": [33.2106, -97.147418],
     "Coliseum": [33.208687, -97.154113],
-    "Discovery Park": [33.2300, -97.1270],
+    "Discovery Park": [33.23, -97.127],
     "Art Building": [33.2125, -97.1535],
-    "Business Leadership Building": [33.2120, -97.1520],
+    "Business Leadership Building": [33.212, -97.152],
     "Chemistry Building": [33.2128, -97.1538],
-    "Bain Hall": [33.2110, -97.1528],
-    "Bruce Hall": [33.2123, -97.1540],
+    "Bain Hall": [33.211, -97.1528],
+    "Bruce Hall": [33.2123, -97.154],
     "Chestnut Hall": [33.2126, -97.1505],
-    "Curry Hall": [33.2130, -97.1522],
+    "Curry Hall": [33.213, -97.1522],
     "General Academic Building": [33.2118, -97.1526],
-    "Gateway Center": [33.2135, -97.1530],
+    "Gateway Center": [33.2135, -97.153],
     "Eagle Student Services Center": [33.2119, -97.1519],
   };
 
-  // Track user location
-  useEffect(() => {
+  /* -------- Track user location -------- */
+  useEffect((): void | (() => void) => {
     if (!navigator.geolocation) return;
+
     const watchId = navigator.geolocation.watchPosition(
-      (pos) => setUserPosition([pos.coords.latitude, pos.coords.longitude]),
+      (pos) =>
+        setUserPosition([pos.coords.latitude, pos.coords.longitude]),
       (err) => console.error(err),
       { enableHighAccuracy: true }
     );
-    return () => navigator.geolocation.clearWatch(watchId);
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
   }, []);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-blue-50 w-full">
       <div className="relative w-[90vw] h-[90vh]">
-        {}
         <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-[2000] pointer-events-auto">
           <select
             value={selectedLocation}
@@ -126,11 +156,10 @@ export default function UNTLiveMapInner() {
           </select>
         </div>
 
-        {/* Map */}
         <MapContainer
           center={defaultPosition}
           zoom={16}
-          scrollWheelZoom={true}
+          scrollWheelZoom
           className="w-full h-full rounded-2xl shadow-lg"
         >
           <ClickToGetCoords />
@@ -140,35 +169,30 @@ export default function UNTLiveMapInner() {
             attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
           />
 
-          {/* User marker */}
           {userPosition && (
             <Marker position={userPosition}>
               <Popup>You are here</Popup>
             </Marker>
           )}
 
-          {/* Fly to user */}
           {userPosition && <FlyToMarker position={userPosition} />}
 
-          {/* Destination marker */}
           {destination && (
             <Marker position={destination}>
               <Popup>Destination</Popup>
             </Marker>
           )}
 
-          {/* Routing */}
           {userPosition && destination && (
             <Routing start={userPosition} end={destination} />
           )}
         </MapContainer>
       </div>
 
-      {/* --- Inline CSS for routing directions box --- */}
       <style jsx global>{`
         .leaflet-routing-container {
-          background-color: #00693E !important; /* UNT green */
-          color: white !important; /* white text */
+          background-color: #00693e !important;
+          color: white !important;
           font-weight: bold;
           border-radius: 12px;
           padding: 10px;
