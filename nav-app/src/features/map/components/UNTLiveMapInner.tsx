@@ -4,27 +4,16 @@ import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
-
-/* ---------------- Fly to marker (EXPORTED) ---------------- */
 export const FlyToMarker: React.FC<{ position: [number, number] }> = ({
   position,
 }) => {
   const map = useMap();
-
-  useEffect((): void => {
+  useEffect(() => {
     map.flyTo(position, 18, { duration: 1.5 });
   }, [position, map]);
-
   return null;
 };
 
-/* ---------------- Routing ---------------- */
 const Routing = ({
   start,
   end,
@@ -33,27 +22,22 @@ const Routing = ({
   end: [number, number];
 }) => {
   const map = useMap();
-
   useEffect((): void | (() => void) => {
     if (!start || !end) return;
     if (typeof window === "undefined") return;
 
     let control: any;
 
-    // VS Code-friendly dynamic import
     const loadRouting = async () => {
       try {
         await import("leaflet-routing-machine");
-
         control = (L as any).Routing.control({
           waypoints: [
             L.latLng(start[0], start[1]),
             L.latLng(end[0], end[1]),
           ],
           routeWhileDragging: false,
-          lineOptions: {
-            styles: [{ color: "#2563eb", weight: 4 }],
-          } as any,
+          lineOptions: { styles: [{ color: "#2563eb", weight: 4 }] } as any,
           createMarker: (_: number, wp: any) => L.marker(wp.latLng),
         }).addTo(map);
       } catch (err) {
@@ -64,44 +48,33 @@ const Routing = ({
     loadRouting();
 
     return () => {
-      if (control) {
-        map.removeControl(control);
-      }
+      if (control) map.removeControl(control);
     };
   }, [map, start, end]);
 
   return null;
 };
 
-/* ---------------- Click to get coordinates ---------------- */
 const ClickToGetCoords = () => {
   const map = useMap();
-
   useEffect((): void | (() => void) => {
     const onClick = (e: any) => {
       const { lat, lng } = e.latlng;
-      const coordsText = `Latitude: ${lat.toFixed(
-        6
-      )}, Longitude: ${lng.toFixed(6)}`;
-      console.log(coordsText);
-      alert(coordsText);
+      alert(`Latitude: ${lat.toFixed(6)}, Longitude: ${lng.toFixed(6)}`);
     };
-
     map.on("click", onClick);
     return () => map.off("click", onClick);
   }, [map]);
-
   return null;
 };
 
-/* ---------------- Main Component ---------------- */
 export default function UNTLiveMapInner() {
   const defaultPosition: [number, number] = [33.2104, -97.1503];
 
-  const [userPosition, setUserPosition] =
-    useState<[number, number] | null>(null);
-  const [destination, setDestination] =
-    useState<[number, number] | null>(null);
+  const [userPosition, setUserPosition] = useState<[number, number] | null>(
+    null
+  );
+  const [destination, setDestination] = useState<[number, number] | null>(null);
   const [selectedLocation, setSelectedLocation] = useState("");
 
   const locations: Record<string, [number, number]> = {
@@ -122,17 +95,25 @@ export default function UNTLiveMapInner() {
     "Eagle Student Services Center": [33.2119, -97.1519],
   };
 
-  /* -------- Track user location -------- */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl:
+        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+      iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+      shadowUrl:
+        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+    });
+  }, []);
+
   useEffect((): void | (() => void) => {
     if (!navigator.geolocation) return;
-
     const watchId = navigator.geolocation.watchPosition(
-      (pos) =>
-        setUserPosition([pos.coords.latitude, pos.coords.longitude]),
+      (pos) => setUserPosition([pos.coords.latitude, pos.coords.longitude]),
       (err) => console.error(err),
       { enableHighAccuracy: true }
     );
-
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
@@ -169,7 +150,6 @@ export default function UNTLiveMapInner() {
           className="w-full h-full rounded-2xl shadow-lg"
         >
           <ClickToGetCoords />
-
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
