@@ -18,6 +18,6 @@ export const auth = betterAuth({
   trustedOrigins: [
     "https://unt-nav-app.vercel.app",                   
     "http://localhost:3000",                            
-    "https://mapumang-capstone-nav-app.vercel.app"      
+     "https://unt-nav-app-git-mapumang-sarthak-shresthas-projects.vercel.app"
   ],
 });
