@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { useSearchParams } from "next/navigation";
 import L from "leaflet";
 
-// Fix for Red Lines: Define explicit TypeScript interfaces
+
 interface PositionProps {
   position: [number, number];
 }
@@ -62,14 +62,21 @@ const Routing: React.FC<RoutingProps> = ({ start, end }) => {
 
 const ClickToGetCoords = () => {
   const map = useMap();
+
   useEffect(() => {
     const onClick = (e: any) => {
       const { lat, lng } = e.latlng;
       alert(`Latitude: ${lat.toFixed(6)}, Longitude: ${lng.toFixed(6)}`);
     };
+
+    
     map.on("click", onClick);
-    return () => map.off("click", onClick);
+
+    return () => {
+      map.off("click", onClick);
+    };
   }, [map]);
+
   return null;
 };
 
