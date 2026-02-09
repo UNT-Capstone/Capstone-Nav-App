@@ -1,17 +1,20 @@
+import Image from "next/image";
+import Link from "next/link";
 import { 
   NavigationMenu, 
   NavigationMenuList, 
   NavigationMenuItem, 
   NavigationMenuLink, 
-  NavigationMenuTrigger ,
+  NavigationMenuTrigger,
   NavigationMenuContent
 } from "@/components/ui/navigation-menu";
 import { FaUserCircle } from 'react-icons/fa';
 import { isAuth } from "@/src/lib/auth-utils";
 import { LogoutButton } from "@/src/features/auth/components/logout-button";
-import Link from "next/link";
+//import logo from "/public/navLogo.png"; // put your logo in /public
 
-const ConditionalElements = ({ authenticated } : {authenticated:boolean}) => {
+// ----------------- CONDITIONAL ELEMENTS -----------------
+const ConditionalElements = ({ authenticated }: { authenticated: boolean }) => {
   if (!authenticated) {
     return (
       <>
@@ -52,35 +55,59 @@ const ConditionalElements = ({ authenticated } : {authenticated:boolean}) => {
   );
 }
 
-const ConditionalRedirect = ({ authenticated } : {authenticated:boolean}) => {
+// ----------------- NAV-APP LOGO -----------------
+const NavLogo = ({ authenticated }: { authenticated: boolean }) => {
   const href = authenticated ? "/home" : "/";
   return (
     <NavigationMenuLink asChild>
-      <Link href={href}>
-        Nav-App
+      <Link href={href} aria-label="Go to home">
+        <Image
+          src="/navLogo.png"  // <--- CHANGE THIS TO A STRING
+          alt="Nav-App for UNT Home"
+          width={140}
+          height={40}
+          priority
+          style={{ cursor: "pointer" }}
+        />
       </Link>
     </NavigationMenuLink>
-  )
-
+  );
 }
 
+// ----------------- NAVBAR COMPONENT -----------------
 const NavBar = async () => {
   const authenticated = await isAuth();
 
   return (
     <nav className="h-12 w-full mt-1 bg-green-700 text-white flex items-center justify-between px-5">
+      
+      {/* LEFT: Logo / Home */}
       <NavigationMenu>
         <NavigationMenuList>
           <NavigationMenuItem>
-            <ConditionalRedirect authenticated={authenticated} />
+            <NavLogo authenticated={authenticated} />
           </NavigationMenuItem>
         </NavigationMenuList>
       </NavigationMenu>
+
+      {/* RIGHT: User / Login / Signup */}
       <NavigationMenu>
         <NavigationMenuList>
+          <NavigationMenuItem>
+            <NavigationMenuLink asChild>
+              <Link href="/events">Events</Link>
+            </NavigationMenuLink>
+          </NavigationMenuItem>
+          <NavigationMenuItem>
+            <NavigationMenuLink asChild>
+              <Link href="/about">About</Link>
+            </NavigationMenuLink>
+          </NavigationMenuItem>
+
           <ConditionalElements authenticated={authenticated} />
         </NavigationMenuList>
       </NavigationMenu>
+
     </nav>
   );
 }
