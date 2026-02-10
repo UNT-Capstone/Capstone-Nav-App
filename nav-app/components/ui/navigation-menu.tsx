@@ -2,17 +2,20 @@ import * as React from "react"
 import * as NavigationMenuPrimitive from "@radix-ui/react-navigation-menu"
 import { cva } from "class-variance-authority"
 import { ChevronDownIcon } from "lucide-react"
+import Image from "next/image"
+import Link from "next/link"
 
 import { cn } from "@/lib/utils"
+//import logo from "/public/navLogo.png" // replace with your logo path
+
+// ----------------- NAVIGATION MENU -----------------
 
 function NavigationMenu({
   className,
   children,
   viewport = true,
   ...props
-}: React.ComponentProps<typeof NavigationMenuPrimitive.Root> & {
-  viewport?: boolean
-}) {
+}: React.ComponentProps<typeof NavigationMenuPrimitive.Root> & { viewport?: boolean }) {
   return (
     <NavigationMenuPrimitive.Root
       data-slot="navigation-menu"
@@ -28,6 +31,8 @@ function NavigationMenu({
     </NavigationMenuPrimitive.Root>
   )
 }
+
+// ----------------- NAVIGATION MENU LIST -----------------
 
 function NavigationMenuList({
   className,
@@ -45,6 +50,8 @@ function NavigationMenuList({
   )
 }
 
+// ----------------- NAVIGATION MENU ITEM -----------------
+
 function NavigationMenuItem({
   className,
   ...props
@@ -57,6 +64,8 @@ function NavigationMenuItem({
     />
   )
 }
+
+// ----------------- NAVIGATION MENU TRIGGER -----------------
 
 const navigationMenuTriggerStyle = cva(
   "group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=open]:hover:bg-accent data-[state=open]:text-accent-foreground data-[state=open]:focus:bg-accent data-[state=open]:bg-accent/50 focus-visible:ring-ring/50 outline-none transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1"
@@ -82,6 +91,8 @@ function NavigationMenuTrigger({
   )
 }
 
+// ----------------- NAVIGATION MENU CONTENT -----------------
+
 function NavigationMenuContent({
   className,
   ...props
@@ -99,16 +110,14 @@ function NavigationMenuContent({
   )
 }
 
+// ----------------- NAVIGATION MENU VIEWPORT -----------------
+
 function NavigationMenuViewport({
   className,
   ...props
 }: React.ComponentProps<typeof NavigationMenuPrimitive.Viewport>) {
   return (
-    <div
-      className={cn(
-        "absolute top-full left-0 isolate z-50 flex justify-center"
-      )}
-    >
+    <div className={cn("absolute top-full left-0 isolate z-50 flex justify-center")}>
       <NavigationMenuPrimitive.Viewport
         data-slot="navigation-menu-viewport"
         className={cn(
@@ -120,6 +129,8 @@ function NavigationMenuViewport({
     </div>
   )
 }
+
+// ----------------- NAVIGATION MENU LINK -----------------
 
 function NavigationMenuLink({
   className,
@@ -136,6 +147,8 @@ function NavigationMenuLink({
     />
   )
 }
+
+// ----------------- NAVIGATION MENU INDICATOR -----------------
 
 function NavigationMenuIndicator({
   className,
@@ -155,6 +168,27 @@ function NavigationMenuIndicator({
   )
 }
 
+// ----------------- NAV-APP LOGO COMPONENT -----------------
+
+// ----------------- NAV-APP LOGO COMPONENT -----------------
+
+function NavLogo() {
+  return (
+    <Link href="/" aria-label="Go to home">
+      <Image
+        src="/navLogo.png" // <--- CHANGE THIS TO A STRING
+        alt="Nav-App for UNT Home"
+        width={140}
+        height={40}
+        priority
+        style={{ cursor: "pointer" }}
+      />
+    </Link>
+  )
+}
+
+// ----------------- EXPORTS -----------------
+
 export {
   NavigationMenu,
   NavigationMenuList,
@@ -165,4 +199,5 @@ export {
   NavigationMenuIndicator,
   NavigationMenuViewport,
   navigationMenuTriggerStyle,
+  NavLogo, // export the logo to use in navbar
 }
