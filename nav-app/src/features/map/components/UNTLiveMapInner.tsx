@@ -38,14 +38,9 @@ const Routing = ({
       try {
         await import("leaflet-routing-machine");
         control = (L as any).Routing.control({
-          waypoints: [
-            L.latLng(start[0], start[1]),
-            L.latLng(end[0], end[1]),
-          ],
+          waypoints: [L.latLng(start[0], start[1]), L.latLng(end[0], end[1])],
           routeWhileDragging: false,
-          lineOptions: {
-            styles: [{ color: "#2563eb", weight: 4 }],
-          } as any,
+          lineOptions: { styles: [{ color: "#2563eb", weight: 4 }] } as any,
           createMarker: (_: number, wp: any) => L.marker(wp.latLng),
         }).addTo(map);
       } catch (err) {
@@ -85,10 +80,29 @@ const ClickToGetCoords = () => {
   return null;
 };
 
+
+const getNearestLocation = async (lat: number, lng: number) => {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
+    );
+    const data = await response.json();
+    if (data.display_name) {
+     
+      return data.display_name.split(",")[0];
+    }
+    return "Current Location";
+  } catch (err) {
+    console.error(err);
+    return "Current Location";
+  }
+};
+
 export default function UNTLiveMapInner() {
   const defaultPosition: [number, number] = [33.2104, -97.1503];
 
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
+  const [nearestLocationName, setNearestLocationName] = useState<string>("Current Location");
   const [destination, setDestination] = useState<[number, number] | null>(null);
   const [showParking, setShowParking] = useState(false);
 
@@ -109,8 +123,7 @@ export default function UNTLiveMapInner() {
     if (!navigator.geolocation) return;
 
     const watchId = navigator.geolocation.watchPosition(
-      (pos) =>
-        setUserPosition([pos.coords.latitude, pos.coords.longitude]),
+      (pos) => setUserPosition([pos.coords.latitude, pos.coords.longitude]),
       () => {},
       { enableHighAccuracy: true }
     );
@@ -118,11 +131,14 @@ export default function UNTLiveMapInner() {
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
-  const handleLocationSelect = (loc: {
-    name: string;
-    lat: number;
-    lng: number;
-  }) => {
+  useEffect(() => {
+    if (!userPosition) return;
+
+    const [lat, lng] = userPosition;
+    getNearestLocation(lat, lng).then((name) => setNearestLocationName(name));
+  }, [userPosition]);
+
+  const handleLocationSelect = (loc: { name: string; lat: number; lng: number }) => {
     setDestination([loc.lat, loc.lng]);
   };
 
@@ -153,7 +169,7 @@ export default function UNTLiveMapInner() {
 
           {userPosition && (
             <Marker position={userPosition}>
-              <Popup>You are here</Popup>
+              <Popup>You are at {nearestLocationName}</Popup>
             </Marker>
           )}
 
