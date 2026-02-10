@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
+import UNTSearchBar from "./UNTSearchBar";
 
 export const FlyToMarker: React.FC<{ position: [number, number] }> = ({
   position,
@@ -75,25 +76,7 @@ export default function UNTLiveMapInner() {
     null
   );
   const [destination, setDestination] = useState<[number, number] | null>(null);
-  const [selectedLocation, setSelectedLocation] = useState("");
-
-  const locations: Record<string, [number, number]> = {
-    "Willis Library": [33.209929, -97.149024],
-    "Pohl Recreation Center": [33.21207, -97.15404],
-    "University Union": [33.2106, -97.147418],
-    "Coliseum": [33.208687, -97.154113],
-    "Discovery Park": [33.23, -97.127],
-    "Art Building": [33.2125, -97.1535],
-    "Business Leadership Building": [33.212, -97.152],
-    "Chemistry Building": [33.2128, -97.1538],
-    "Bain Hall": [33.211, -97.1528],
-    "Bruce Hall": [33.2123, -97.154],
-    "Chestnut Hall": [33.2126, -97.1505],
-    "Curry Hall": [33.213, -97.1522],
-    "General Academic Building": [33.2118, -97.1526],
-    "Gateway Center": [33.2135, -97.153],
-    "Eagle Student Services Center": [33.2119, -97.1519],
-  };
+  const [selectedLocationName, setSelectedLocationName] = useState("");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -117,31 +100,19 @@ export default function UNTLiveMapInner() {
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
+  const handleLocationSelect = (loc: {
+    name: string;
+    lat: number;
+    lng: number;
+  }) => {
+    setSelectedLocationName(loc.name);
+    setDestination([loc.lat, loc.lng]);
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-blue-50 w-full">
       <div className="relative w-[90vw] h-[90vh]">
-        <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-[2000] pointer-events-auto">
-          <select
-            value={selectedLocation}
-            onChange={(e) => {
-              const name = e.target.value;
-              setSelectedLocation(name);
-              setDestination(locations[name]);
-            }}
-            className="bg-[#00693E] text-white font-bold text-xl border-2 border-black rounded-xl px-8 py-4 shadow-lg"
-          >
-            <option value="" disabled>
-              SELECT DESTINATION
-            </option>
-            {Object.keys(locations)
-              .sort((a, b) => a.localeCompare(b))
-              .map((name) => (
-                <option key={name} value={name}>
-                  {name.toUpperCase()}
-                </option>
-              ))}
-          </select>
-        </div>
+        <UNTSearchBar onSelect={handleLocationSelect} />
 
         <MapContainer
           center={defaultPosition}
