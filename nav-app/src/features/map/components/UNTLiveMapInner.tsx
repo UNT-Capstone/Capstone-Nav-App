@@ -4,14 +4,19 @@ import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import UNTSearchBar from "./UNTSearchBar";
+import ParkingOverlay from "../../parking/components/ParkingOverlay";
 
 export const FlyToMarker: React.FC<{ position: [number, number] }> = ({
   position,
 }) => {
   const map = useMap();
+
   useEffect(() => {
-    map.flyTo(position, 18, { duration: 1.5 });
-  }, [position, map]);
+    if (map && position) {
+      map.flyTo(position, 18, { duration: 1.5 });
+    }
+  }, [position]);
+
   return null;
 };
 
@@ -23,11 +28,11 @@ const Routing = ({
   end: [number, number];
 }) => {
   const map = useMap();
-  useEffect((): void | (() => void) => {
-    if (!start || !end) return;
-    if (typeof window === "undefined") return;
 
-    let control: any;
+  useEffect(() => {
+    if (!start || !end || typeof window === "undefined") return;
+
+    let control: any = null;
 
     const loadRouting = async () => {
       try {
@@ -38,48 +43,58 @@ const Routing = ({
             L.latLng(end[0], end[1]),
           ],
           routeWhileDragging: false,
-          lineOptions: { styles: [{ color: "#2563eb", weight: 4 }] } as any,
+          lineOptions: {
+            styles: [{ color: "#2563eb", weight: 4 }],
+          } as any,
           createMarker: (_: number, wp: any) => L.marker(wp.latLng),
         }).addTo(map);
       } catch (err) {
-        console.error("Failed to load routing machine:", err);
+        console.error(err);
       }
     };
 
     loadRouting();
 
     return () => {
-      if (control) map.removeControl(control);
+      if (control && map) {
+        try {
+          map.removeControl(control);
+        } catch {}
+      }
     };
-  }, [map, start, end]);
+  }, [start, end]);
 
   return null;
 };
 
 const ClickToGetCoords = () => {
   const map = useMap();
-  useEffect((): void | (() => void) => {
+
+  useEffect(() => {
     const onClick = (e: any) => {
       const { lat, lng } = e.latlng;
       alert(`Latitude: ${lat.toFixed(6)}, Longitude: ${lng.toFixed(6)}`);
     };
+
     map.on("click", onClick);
-    return () => map.off("click", onClick);
-  }, [map]);
+    return () => {
+      map.off("click", onClick);
+    };
+  }, []);
+
   return null;
 };
 
 export default function UNTLiveMapInner() {
   const defaultPosition: [number, number] = [33.2104, -97.1503];
 
-  const [userPosition, setUserPosition] = useState<[number, number] | null>(
-    null
-  );
+  const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
   const [destination, setDestination] = useState<[number, number] | null>(null);
-  const [selectedLocationName, setSelectedLocationName] = useState("");
+  const [showParking, setShowParking] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+
     delete (L.Icon.Default.prototype as any)._getIconUrl;
     L.Icon.Default.mergeOptions({
       iconRetinaUrl:
@@ -90,13 +105,16 @@ export default function UNTLiveMapInner() {
     });
   }, []);
 
-  useEffect((): void | (() => void) => {
+  useEffect(() => {
     if (!navigator.geolocation) return;
+
     const watchId = navigator.geolocation.watchPosition(
-      (pos) => setUserPosition([pos.coords.latitude, pos.coords.longitude]),
-      (err) => console.error(err),
+      (pos) =>
+        setUserPosition([pos.coords.latitude, pos.coords.longitude]),
+      () => {},
       { enableHighAccuracy: true }
     );
+
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
@@ -105,7 +123,6 @@ export default function UNTLiveMapInner() {
     lat: number;
     lng: number;
   }) => {
-    setSelectedLocationName(loc.name);
     setDestination([loc.lat, loc.lng]);
   };
 
@@ -114,13 +131,21 @@ export default function UNTLiveMapInner() {
       <div className="relative w-[90vw] h-[90vh]">
         <UNTSearchBar onSelect={handleLocationSelect} />
 
+        <button
+          onClick={() => setShowParking((p) => !p)}
+          className="absolute z-[1000] top-4 left-16 bg-white px-4 py-2 rounded-xl shadow"
+        >
+          {showParking ? "Hide Parking" : "Show Parking"}
+        </button>
+
         <MapContainer
           center={defaultPosition}
           zoom={16}
           scrollWheelZoom
           className="w-full h-full rounded-2xl shadow-lg"
         >
-          <ClickToGetCoords />
+          {!showParking && <ClickToGetCoords />}
+
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
@@ -140,9 +165,11 @@ export default function UNTLiveMapInner() {
             </Marker>
           )}
 
-          {userPosition && destination && (
+          {userPosition && destination && !showParking && (
             <Routing start={userPosition} end={destination} />
           )}
+
+          {showParking && <ParkingOverlay />}
         </MapContainer>
       </div>
 
