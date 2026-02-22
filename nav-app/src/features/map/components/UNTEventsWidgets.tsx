@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface EventItem {
   title: string;
@@ -10,96 +10,61 @@ interface EventItem {
   coords?: [number, number];
 }
 
-const EVENTS_PER_PAGE = 10;
-
 const sampleEvents: EventItem[] = [
   { title: "Football Game", date: "Nov 30", type: "In-Person", coords: [33.2104, -97.1503] },
   { title: "Lecture: AI in Society", date: "Dec 1", type: "Online", coords: [33.2104, -97.1503] },
   { title: "Art Exhibit", date: "Dec 2", type: "In-Person", coords: [33.2120, -97.1480] },
-  { title: "Workshop: Robotics", date: "Dec 3", type: "In-Person", coords: [33.2110, -97.1490] },
-  // add more events...
 ];
 
-const DEFAULT_TABS = ["All", "In-Person", "Online"];
-
-const UNTEventsWidget: React.FC = () => {
+const UNTEventsWidgetContent = () => {
   const [activeTab, setActiveTab] = useState("All");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [highlightedEvent, setHighlightedEvent] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const tabs = DEFAULT_TABS;
+  useEffect(() => {
+    const eventTitle = searchParams.get("event");
+    if (eventTitle) setHighlightedEvent(eventTitle);
+  }, [searchParams]);
 
-  const filteredEvents =
-    activeTab === "All" ? sampleEvents : sampleEvents.filter((e) => e.type === activeTab);
-
-  const totalPages = Math.ceil(filteredEvents.length / EVENTS_PER_PAGE);
-  const paginatedEvents = filteredEvents.slice(
-    (currentPage - 1) * EVENTS_PER_PAGE,
-    currentPage * EVENTS_PER_PAGE
-  );
-
-  const handleGo = (event: EventItem) => {
-    const query = new URLSearchParams();
-    query.set("event", event.title);
-    if (event.coords) {
-      query.set("lat", event.coords[0].toString());
-      query.set("lng", event.coords[1].toString());
-    }
-    router.push(`/home?${query.toString()}`);
-  };
+  const filteredEvents = activeTab === "All" ? sampleEvents : sampleEvents.filter(e => e.type === activeTab);
 
   return (
-    <div className="events-widget p-4 bg-white shadow rounded-lg">
-      <div className="tabs flex space-x-4 mb-4">
-        {tabs.map((tab) => (
-          <button
+    <div className="p-4 bg-white shadow-xl rounded-2xl border-t-4 border-[#00853E]">
+      <div className="flex gap-2 mb-4">
+        {["All", "In-Person", "Online"].map(tab => (
+          <button 
             key={tab}
-            className={`px-3 py-1 rounded ${activeTab === tab ? "bg-blue-600 text-white" : "bg-gray-200"}`}
-            onClick={() => { setActiveTab(tab); setCurrentPage(1); }}
+            onClick={() => { setActiveTab(tab); setHighlightedEvent(null); }}
+            className={`px-4 py-1 rounded-full text-xs font-bold ${activeTab === tab ? "bg-[#00853E] text-white" : "bg-gray-100 text-gray-500"}`}
           >
             {tab}
           </button>
         ))}
       </div>
-
-      <div className="event-list grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {paginatedEvents.map((event, idx) => (
-          <div key={idx} className="event-card p-3 border rounded shadow flex flex-col justify-between">
-            <h3 className="font-semibold text-lg">{event.title}</h3>
-            <p className="text-gray-500">{event.date}</p>
-            <div className="mt-2 flex justify-end">
-              <button
-                className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                onClick={() => handleGo(event)}
-              >
-                Go
-              </button>
-            </div>
+      <div className="space-y-3">
+        {filteredEvents.map((event, i) => (
+          <div key={i} className={`p-4 border rounded-xl transition-all ${highlightedEvent === event.title ? "border-[#00853E] bg-green-50 scale-[1.02]" : "border-gray-100"}`}>
+            <h3 className="font-bold text-gray-900">{event.title}</h3>
+            <p className="text-xs text-gray-500">{event.date}</p>
+            <button 
+              onClick={() => router.push(`/home?lat=${event.coords?.[0]}&lng=${event.coords?.[1]}`)}
+              className="mt-3 w-full py-2 bg-gray-100 text-gray-800 rounded-lg text-[10px] font-black uppercase hover:bg-gray-200"
+            >
+              Locate on Map
+            </button>
           </div>
         ))}
       </div>
-
-      {totalPages > 1 && (
-        <div className="pagination flex justify-center space-x-2 mt-4">
-          <button
-            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage((p) => p - 1)}
-          >
-            Prev
-          </button>
-          <span className="px-3 py-1">{currentPage} / {totalPages}</span>
-          <button
-            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage((p) => p + 1)}
-          >
-            Next
-          </button>
-        </div>
-      )}
     </div>
   );
 };
+
+// Next.js requires Suspense when using useSearchParams
+const UNTEventsWidget = () => (
+  <Suspense fallback={<div>Loading Widget...</div>}>
+    <UNTEventsWidgetContent />
+  </Suspense>
+);
 
 export default UNTEventsWidget;
