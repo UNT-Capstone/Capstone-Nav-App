@@ -38,7 +38,7 @@ export default function GlassNavbar() {
         {/* Right: Navigation Links & Profile */}
         <div className="flex items-center gap-8">
           <nav className="hidden md:flex gap-8 text-base font-semibold text-gray-700">
-            <Link href="/events" className="hover:text-[#00853E] transition-colors relative group">
+            <Link href="/UNTEvents" className="hover:text-[#00853E] transition-colors relative group">
               Events
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#00853E] transition-all group-hover:w-full"></span>
             </Link>
