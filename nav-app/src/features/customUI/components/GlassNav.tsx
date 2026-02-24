@@ -1,8 +1,11 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { FaUserCircle } from 'react-icons/fa';
+import { isAuth } from '@/src/lib/auth-utils';
+import { GlassNavProfile } from './GlassNavProfile';
 
-export default function GlassNavbar() {
+export default async function GlassNavbar() {
+  const authenticated = await isAuth();
+
   return (
     <div className="flex justify-center w-full pt-6 px-4 sticky top-0 z-50">
       <header className="w-full max-w-6xl px-8 py-5 
@@ -35,30 +38,28 @@ export default function GlassNavbar() {
           </Link>
         </div>
         
-        {/* Right: Navigation Links & Profile */}
+        {/* Right: Auth conditional rendering */}
         <div className="flex items-center gap-8">
-          <nav className="hidden md:flex gap-8 text-base font-semibold text-gray-700">
-            <Link href="/UNTEvents" className="hover:text-[#00853E] transition-colors relative group">
-              Events
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#00853E] transition-all group-hover:w-full"></span>
-            </Link>
-            <Link href="/about" className="hover:text-[#00853E] transition-colors relative group">
-              About
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#00853E] transition-all group-hover:w-full"></span>
-            </Link>
-          </nav>
-
-          <div className="h-8 w-[1px] bg-gray-300 mx-2 hidden md:block"></div>
-
-          {/* Larger Profile Button */}
-          <Link href="/profile">
-            <button className="flex items-center gap-3 px-6 py-2.5 rounded-full 
-                             bg-white/30 hover:bg-white/50 border border-white/50
-                             backdrop-blur-xl transition-all active:scale-90 shadow-md">
-              <FaUserCircle className="text-2xl text-gray-700" />
-              <span className="text-base font-bold text-gray-800">Profile</span>
-            </button>
-          </Link>
+          {authenticated ? (
+            <GlassNavProfile />
+          ) : (
+            <>
+              <Link href="/login">
+                <button className="flex items-center gap-3 px-6 py-2.5 rounded-full 
+                                 bg-white/30 hover:bg-white/50 border border-white/50
+                                 backdrop-blur-xl transition-all active:scale-90 shadow-md text-base font-bold text-gray-800">
+                  Login
+                </button>
+              </Link>
+              <Link href="/signup">
+                <button className="flex items-center gap-3 px-6 py-2.5 rounded-full 
+                                 bg-white/30 hover:bg-white/50 border border-white/50
+                                 backdrop-blur-xl transition-all active:scale-90 shadow-md text-base font-bold text-gray-800">
+                  Signup
+                </button>
+              </Link>
+            </>
+          )}
         </div>
       </header>
     </div>

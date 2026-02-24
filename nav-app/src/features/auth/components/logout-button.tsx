@@ -23,7 +23,7 @@ export const LogoutButton = ({ className }: { className?: string }) => {
     <a 
       href='/' 
       onClick={handleLogout}
-      className={className}
+      className="block p-2 hover:bg-gray-100 rounded"
     >
       Logout
     </a>
