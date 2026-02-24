@@ -3,20 +3,19 @@ import './globals.css';
 import { ReactNode } from 'react';
 import { TRPCReactProvider } from '@/src/trpc/client';
 import { Toaster } from '@/components/ui/sonner';
-import { FaUserCircle } from 'react-icons/fa'; // Profile icon
-import NavBar from '@/src/features/customUI/components/nav-bar'
+import GlassNavbar from '@/src/features/customUI/components/GlassNav';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>
+      <body className="bg-gray-50">
         <TRPCReactProvider>
-          <NavBar/>
-          <main style={{ padding: '20px' }}>{children}</main>
+          {/* Use the new unified glass navbar here */}
+          <GlassNavbar />
+          <main>{children}</main>
           <Toaster />
         </TRPCReactProvider>
       </body>
     </html>
   );
 }
-
