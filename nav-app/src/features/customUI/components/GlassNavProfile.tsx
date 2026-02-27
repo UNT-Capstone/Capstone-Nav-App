@@ -44,6 +44,9 @@ export function GlassNavProfile() {
               <Link href="/UNTEvents" className="block p-2 hover:bg-gray-100 rounded">Events</Link>
             </li>
             <li>
+              <Link href="/" className="block p-2 hover:bg-gray-100 rounded">Map</Link>
+            </li>
+            <li>
               <Link href="/about" className="block p-2 hover:bg-gray-100 rounded">About</Link>
             </li>
             <li>

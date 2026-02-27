@@ -143,13 +143,13 @@ export default function UNTLiveMapInner() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-blue-50 w-full">
-      <div className="relative w-[90vw] h-[90vh]">
+    <div className="flex flex-col items-center justify-center h-full bg-blue-50 w-screen">
+      <div className="relative w-screen h-full">
         <UNTSearchBar onSelect={handleLocationSelect} />
 
         <button
           onClick={() => setShowParking((p) => !p)}
-          className="absolute z-[1000] top-4 left-16 bg-white px-4 py-2 rounded-xl shadow"
+          className="absolute z-[999] top-32 left-16 bg-white px-4 py-2 rounded-xl shadow"
         >
           {showParking ? "Hide Parking" : "Show Parking"}
         </button>
@@ -158,7 +158,7 @@ export default function UNTLiveMapInner() {
           center={defaultPosition}
           zoom={16}
           scrollWheelZoom
-          className="w-full h-full rounded-2xl shadow-lg"
+          className="w-full h-full rounded-none shadow-lg"
         >
           {!showParking && <ClickToGetCoords />}
 

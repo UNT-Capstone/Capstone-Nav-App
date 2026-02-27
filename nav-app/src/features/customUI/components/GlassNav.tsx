@@ -7,7 +7,7 @@ export default async function GlassNavbar() {
   const authenticated = await isAuth();
 
   return (
-    <div className="flex justify-center w-full pt-6 px-4 sticky top-0 z-50">
+    <div className="flex justify-center w-full pt-6 px-4 fixed top-0 left-0 right-0 z-[2000]">
       <header className="w-full max-w-6xl px-8 py-5 
                         bg-white/45 backdrop-blur-lg backdrop-saturate-150 
                         border border-white/40 rounded-[2rem] shadow-xl 
