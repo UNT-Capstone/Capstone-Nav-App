@@ -8,11 +8,10 @@ import GlassNavbar from '@/src/features/customUI/components/GlassNav';
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-gray-50">
+      <body className="bg-gray-50 m-0 p-0">
         <TRPCReactProvider>
-          {/* Use the new unified glass navbar here */}
           <GlassNavbar />
-          <main>{children}</main>
+          <main className="w-screen h-screen overflow-hidden">{children}</main>
           <Toaster />
         </TRPCReactProvider>
       </body>
