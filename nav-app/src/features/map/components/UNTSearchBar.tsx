@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
+import { saveSearch } from "@/src/app/actions/saveSearch";
+
 interface LocationResult {
   name: string;
   lat: number;
@@ -11,7 +13,6 @@ interface UNTSearchBarProps {
   onSelect: (loc: { name: string; lat: number; lng: number }) => void;
 }
 
-// Geocode location using Nominatim API
 async function geocodeLocation(query: string): Promise<LocationResult[]> {
   try {
     const response = await fetch(
@@ -33,8 +34,8 @@ export default function UNTSearchBar({ onSelect }: UNTSearchBarProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<LocationResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
-  // Fetch results from Nominatim as user types
   useEffect(() => {
     if (query.trim().length < 2) {
       setResults([]);
@@ -47,13 +48,12 @@ export default function UNTSearchBar({ onSelect }: UNTSearchBarProps) {
         setResults(res);
         setLoading(false);
       });
-    }, 300); // Debounce search
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [query]);
 
   const filtered = results.slice(0, 8);
-
 
   return (
     <div className="absolute top-32 left-1/2 transform -translate-x-1/2 w-80 z-[1000]">
@@ -80,12 +80,19 @@ export default function UNTSearchBar({ onSelect }: UNTSearchBarProps) {
                 key={index}
                 className="p-3 hover:bg-blue-100 cursor-pointer border-b last:border-b-0"
                 onClick={() => {
+                  const placeName = loc.name.split(",")[0];
+
                   onSelect({
-                    name: loc.name.split(",")[0], // Use first part of full address
+                    name: placeName,
                     lat: loc.lat,
                     lng: loc.lng,
                   });
-                  setQuery(""); // reset search
+
+                  startTransition(() => {
+                    saveSearch(placeName);
+                  });
+
+                  setQuery("");
                   setResults([]);
                 }}
               >
