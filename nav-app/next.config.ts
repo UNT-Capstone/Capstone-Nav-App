@@ -14,9 +14,6 @@ const config: NextConfig = {
       }
       return config;
   },
-  outputFileTracingIncludes: {
-    "/**/*.js": ["lib/generated/prisma"],
-  },
 };
 
 export default config;
