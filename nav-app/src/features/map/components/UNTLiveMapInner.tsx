@@ -5,100 +5,154 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { useSearchParams } from "next/navigation"; // NEEDED for "Go to Class"
 import L from "leaflet";
 import UNTSearchBar from "./UNTSearchBar";
+import ParkingOverlay from "../../parking/components/ParkingOverlay";
 
-// 1. RE-USE YOUR DATA: We need this to look up coordinates by name from the URL
-const BUILDING_DATA: Record<string, [number, number]> = {
-  "Willis Library": [33.209929, -97.149024],
-  "Pohl Recreation Center": [33.21207, -97.15404],
-  "University Union": [33.2106, -97.147418],
-  "Coliseum": [33.208687, -97.154113],
-  "Discovery Park": [33.2536, -97.1526],
-  "General Academic Building (GAB)": [33.2118, -97.1526],
-  // ... add others as needed
+export const FlyToMarker: React.FC<{ position: [number, number] }> = ({
+  position,
+}) => {
+  const map = useMap();
+  useEffect(() => {
+    map.flyTo(position, 18, { duration: 1.5 });
+  }, [position, map]);
+  return null;
 };
 
-// This component must be defined before it can be used on line 70
+const Routing = ({
+  start,
+  end,
+}: {
+  start: [number, number];
+  end: [number, number];
+}) => {
+  const map = useMap();
+  useEffect((): void | (() => void) => {
+    if (!start || !end) return;
+    if (typeof window === "undefined") return;
+
+    let control: any;
+
+    const loadRouting = async () => {
+      try {
+        await import("leaflet-routing-machine");
+        control = (L as any).Routing.control({
+          waypoints: [
+            L.latLng(start[0], start[1]),
+            L.latLng(end[0], end[1]),
+          ],
+          routeWhileDragging: false,
+          lineOptions: { styles: [{ color: "#2563eb", weight: 4 }] } as any,
+          createMarker: (_: number, wp: any) => L.marker(wp.latLng),
+        }).addTo(map);
+      } catch (err) {
+        console.error("Failed to load routing machine:", err);
+      }
+    };
+
+    loadRouting();
+
+    return () => {
+      if (control) map.removeControl(control);
+    };
+  }, [map, start, end]);
+
+  return null;
+};
+
 const ClickToGetCoords = () => {
   const map = useMap();
-
-  useEffect(() => {
-    // We wrap this in a function to avoid the 'EffectCallback' error 
-    // you saw in Vercel previously
+  useEffect((): void | (() => void) => {
     const onClick = (e: any) => {
       const { lat, lng } = e.latlng;
       alert(`Latitude: ${lat.toFixed(6)}, Longitude: ${lng.toFixed(6)}`);
     };
 
     map.on("click", onClick);
-
-    return () => {
-      map.off("click", onClick);
-    };
+    return () => map.off("click", onClick);
   }, [map]);
-
   return null;
 };
 
-// 2. THE BRIDGE: This component listens to the URL and updates the map state
-function MapUrlListener({ 
-  setDestination, 
-  setSelectedName 
-}: { 
-  setDestination: (pos: [number, number]) => void;
-  setSelectedName: (name: string) => void;
-}) {
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const navTo = searchParams.get('navTo');
-    if (navTo && BUILDING_DATA[navTo]) {
-      setDestination(BUILDING_DATA[navTo]);
-      setSelectedName(navTo);
-    }
-  }, [searchParams, setDestination, setSelectedName]);
-
-  return null;
-}
-
-// ... Keep FlyToMarker, Routing, and ClickToGetCoords as your teammate wrote them ...
-
 export default function UNTLiveMapInner() {
   const defaultPosition: [number, number] = [33.2104, -97.1503];
-  const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
+
+  const [userPosition, setUserPosition] = useState<[number, number] | null>(
+    null
+  );
   const [destination, setDestination] = useState<[number, number] | null>(null);
-  const [selectedLocationName, setSelectedLocationName] = useState("");
+  const [showParking, setShowParking] = useState(false);
 
-  // ... Keep teammate's Icon and Geolocation effects ...
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl:
+        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+      iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+      shadowUrl:
+        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+    });
+  }, []);
 
-  const handleLocationSelect = (loc: { name: string; lat: number; lng: number }) => {
+  useEffect((): void | (() => void) => {
+    if (!navigator.geolocation) return;
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => setUserPosition([pos.coords.latitude, pos.coords.longitude]),
+      (err) => console.error(err),
+      { enableHighAccuracy: true }
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
+
+  const handleLocationSelect = (loc: {
+    name: string;
+    lat: number;
+    lng: number;
+  }) => {
     setSelectedLocationName(loc.name);
     setDestination([loc.lat, loc.lng]);
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-blue-50 w-full">
-      <div className="relative w-[90vw] h-[90vh]">
+    <div className="flex flex-col items-center justify-center h-full bg-blue-50 w-screen">
+      <div className="relative w-screen h-full">
         <UNTSearchBar onSelect={handleLocationSelect} />
 
-        <MapContainer center={defaultPosition} zoom={16} className="w-full h-full rounded-2xl shadow-lg">
-          {/* 3. ATTACH THE LISTENER: This makes the "Go to Class" button work again */}
-          <Suspense fallback={null}>
-            <MapUrlListener 
-              setDestination={setDestination} 
-              setSelectedName={setSelectedLocationName} 
-            />
-          </Suspense>
+        <button
+          onClick={() => setShowParking((p) => !p)}
+          className="absolute z-[999] top-32 left-16 bg-white px-4 py-2 rounded-xl shadow"
+        >
+          {showParking ? "Hide Parking" : "Show Parking"}
+        </button>
 
+        <MapContainer
+          center={defaultPosition}
+          zoom={16}
+          scrollWheelZoom
+          className="w-full h-full rounded-2xl shadow-lg"
+        >
           <ClickToGetCoords />
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
+          />
 
-          {/* Markers and Routing logic below... */}
+          {userPosition && (
+            <Marker position={userPosition}>
+              <Popup>You are here</Popup>
+            </Marker>
+          )}
+
+          {userPosition && <FlyToMarker position={userPosition} />}
+
           {destination && (
             <Marker position={destination}>
               <Popup>{selectedLocationName || "Destination"}</Popup>
             </Marker>
           )}
-          {userPosition && destination && <Routing start={userPosition} end={destination} />}
+
+          {userPosition && destination && (
+            <Routing start={userPosition} end={destination} />
+          )}
         </MapContainer>
       </div>
     </div>
