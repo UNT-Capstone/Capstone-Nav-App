@@ -36,6 +36,25 @@ const UNTEventsPage: React.FC = () => {
 
   const router = useRouter();
 
+  // 1. LOAD COMMENTS FROM LOCALSTORAGE ON MOUNT
+  useEffect(() => {
+    const savedComments = localStorage.getItem('unt_event_discussions');
+    if (savedComments) {
+      try {
+        setComments(JSON.parse(savedComments));
+      } catch (e) {
+        console.error("Failed to parse saved comments", e);
+      }
+    }
+  }, []);
+
+  // 2. SAVE COMMENTS TO LOCALSTORAGE WHENEVER THEY CHANGE
+  useEffect(() => {
+    if (Object.keys(comments).length > 0) {
+      localStorage.setItem('unt_event_discussions', JSON.stringify(comments));
+    }
+  }, [comments]);
+
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -202,7 +221,6 @@ const UNTEventsPage: React.FC = () => {
 
                 {/* Action Buttons */}
                 <div className="flex flex-wrap gap-4 pt-8 border-t mt-8">
-                  {/* RE-ADDED DETAILS BUTTON */}
                   <a 
                     href={activeEvent.localist_url} 
                     target="_blank" 
