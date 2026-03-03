@@ -6,6 +6,7 @@ import L from "leaflet";
 import { useSearchParams } from "next/navigation";
 import UNTSearchBar from "./UNTSearchBar";
 import ParkingOverlay from "../../parking/components/ParkingOverlay";
+import LocationDetailsPanel from "./LocationDetailsPanel";
 
 // --- Helper: Reverse Geocoding (MISSING PIECE ADDED BACK) ---
 const getNearestLocation = async (lat: number, lng: number) => {
@@ -108,6 +109,11 @@ export default function UNTLiveMapInner() {
   const [destination, setDestination] = useState<[number, number] | null>(null);
   const [showParking, setShowParking] = useState(false);
   const [isEventTarget, setIsEventTarget] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<{
+    name: string;
+    lat: number;
+    lng: number;
+  } | null>(null);
 
   // Initialize Icons
   useEffect(() => {
@@ -150,14 +156,27 @@ export default function UNTLiveMapInner() {
   }, [userPosition]);
 
   const handleLocationSelect = (loc: { name: string; lat: number; lng: number }) => {
-    setIsEventTarget(false); 
-    setDestination([loc.lat, loc.lng]);
+    setSelectedLocation(loc);
+  };
+
+  const handleGetDirections = () => {
+    if (selectedLocation) {
+      setIsEventTarget(false);
+      setDestination([selectedLocation.lat, selectedLocation.lng]);
+      setSelectedLocation(null);
+    }
   };
 
   return (
     <div className="flex flex-col items-center justify-center h-full bg-blue-50 w-screen">
       <div className="relative w-screen h-full">
         <UNTSearchBar onSelect={handleLocationSelect} />
+
+        <LocationDetailsPanel
+          location={selectedLocation}
+          onClose={() => setSelectedLocation(null)}
+          onDirections={handleGetDirections}
+        />
 
         <button
           onClick={() => setShowParking((p) => !p)}
