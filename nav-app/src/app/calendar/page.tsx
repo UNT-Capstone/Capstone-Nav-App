@@ -1,77 +1,215 @@
-import { requireAuth } from "@/src/lib/auth-utils";
-import { FaCalendarAlt, FaMapMarkerAlt, FaClock, FaLocationArrow } from 'react-icons/fa';
+"use client";
+
+import * as React from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { 
+  Plus, 
+  Loader2, 
+  XIcon, 
+  Calendar, 
+  MapPin, 
+  Clock, 
+  Navigation, 
+  Trash2 
+} from "lucide-react";
+import * as DialogPrimitive from "@radix-ui/react-dialog"; 
+import { addClass, getClasses, deleteClass } from "@/src/app/calendar/actions";
+import { cn } from "../../../lib/utils";
 
-const MOCK_SCHEDULE = [
-  {
-    id: 1,
-    course: "CSCE 4901: Capstone I",
-    time: "09:30 AM - 10:50 AM",
-    location: "Discovery Park B Building",
-    days: "Tue, Thu",
-  },
-  {
-    id: 2,
-    course: "CSCE 3600: Systems Programming",
-    time: "12:30 PM - 01:50 PM",
-    location: "BLB – Business Leadership Building",
-    days: "Mon, Wed",
-  },
-  {
-    id: 3,
-    course: "CSCE 4110: Algorithms",
-    time: "02:00 PM - 03:20 PM",
-    location: "General Academic Building (GAB)",
-    days: "Mon, Wed",
+// --- 1. DIALOG PRIMITIVES ---
+const Dialog = DialogPrimitive.Root;
+const DialogTrigger = DialogPrimitive.Trigger;
+const DialogPortal = DialogPrimitive.Portal;
+
+const DialogOverlay = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Overlay>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Overlay
+    ref={ref}
+    className={cn(
+      "fixed inset-0 z-[3000] bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out",
+      className
+    )}
+    {...props}
+  />
+));
+DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
+
+const DialogContent = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
+>(({ className, children, ...props }, ref) => (
+  <DialogPortal>
+    <DialogOverlay />
+    <DialogPrimitive.Content
+      ref={ref}
+      className={cn(
+        "fixed left-[50%] top-[50%] z-[3001] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-6 border bg-white p-8 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95 sm:rounded-[2.5rem] outline-none",
+        className
+      )}
+      {...props}
+    >
+      {children}
+      <DialogPrimitive.Close className="absolute right-6 top-6 rounded-full p-2 opacity-70 transition-opacity hover:bg-gray-100">
+        <XIcon className="h-5 w-5 text-gray-500" />
+      </DialogPrimitive.Close>
+    </DialogPrimitive.Content>
+  </DialogPortal>
+));
+DialogContent.displayName = DialogPrimitive.Content.displayName;
+
+// --- 2. ADD FORM COMPONENT ---
+function AddClassForm({ onRefresh }: { onRefresh: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLoading(true);
+    const formData = new FormData(event.currentTarget);
+    try {
+      await addClass(formData);
+      setOpen(false); 
+      onRefresh(); 
+    } catch (error) {
+      console.error("Failed to add class", error);
+    } finally {
+      setLoading(false);
+    }
   }
-];
-
-export default async function CalendarPage() {
-  await requireAuth();
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-80px)] bg-white overflow-y-auto">
-      <div className="max-w-4xl mx-auto w-full px-8 py-12">
-        <header className="flex items-center justify-between mb-12">
-          <div>
-            <h1 className="text-4xl font-black text-gray-900 tracking-tighter uppercase">Schedule</h1>
-            <p className="text-sm font-bold text-[#00853E] uppercase tracking-widest mt-1">Spring 2026 • UNT Denton</p>
-          </div>
-          <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 hidden sm:block">
-            <FaCalendarAlt size={24} className="text-gray-300" />
-          </div>
-        </header>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <button className="flex items-center gap-3 bg-[#00853E] text-white px-8 py-4 rounded-2xl font-black hover:bg-[#006a31] transition-all shadow-xl shadow-green-900/20 active:scale-95 text-lg">
+          <Plus className="w-6 h-6 stroke-[3]" />
+          <span>Add Class</span>
+        </button>
+      </DialogTrigger>
 
-        <div className="space-y-6">
-          {MOCK_SCHEDULE.map((item) => (
-            <div key={item.id} className="group bg-white p-6 rounded-3xl border border-gray-100 hover:border-[#00853E]/30 hover:shadow-xl transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <span className="bg-green-50 text-[#00853E] text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">{item.days}</span>
-                  <div className="flex items-center gap-1 text-gray-400">
-                    <FaClock size={12} />
-                    <span className="text-xs font-bold">{item.time}</span>
+      <DialogContent>
+        <div className="mb-2 text-left">
+          <h2 className="text-3xl font-black text-gray-900 tracking-tight">Add New Class</h2>
+          <p className="text-gray-500 font-medium">Enter course details for navigation</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-5 text-left">
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-gray-700 ml-1">Class Name</label>
+            <input name="name" required placeholder="e.g. CSCE 1030" className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#00853E] outline-none" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-gray-700 ml-1">Location (Building Name)</label>
+            <input name="location" required placeholder="e.g. Discovery Park" className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#00853E] outline-none" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-gray-700 ml-1">Time</label>
+            <input name="time" placeholder="e.g. MWF 10:00 AM" className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#00853E] outline-none" />
+          </div>
+          <button type="submit" disabled={loading} className="w-full bg-[#00853E] text-white py-5 rounded-2xl font-black text-xl mt-4 hover:bg-[#006a31] transition-all disabled:opacity-50 flex justify-center items-center shadow-xl shadow-green-900/20">
+            {loading ? <Loader2 className="w-7 h-7 animate-spin" /> : "Save Class"}
+          </button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// --- 3. FULL PAGE DEFAULT EXPORT ---
+export default function CalendarPage() {
+  const [classes, setClasses] = useState<any[]>([]);
+  const [fetching, setFetching] = useState(true);
+
+  const fetchClasses = async () => {
+    try {
+      const data = await getClasses();
+      setClasses(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Remove this class from your schedule?")) return;
+    try {
+      await deleteClass(id);
+      fetchClasses();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchClasses();
+  }, []);
+
+  return (
+    <main className="min-h-screen pt-64 pb-32 px-6 bg-[#f8fafc] flex flex-col items-center">
+      <div className="w-full max-w-2xl flex flex-col items-center">
+        
+        <div className="text-center mb-16">
+          <span className="text-[#00853E] font-bold uppercase tracking-[0.2em] text-xs mb-3 block">
+            Academic Organizer
+          </span>
+          <h1 className="text-6xl font-black text-gray-900 tracking-tighter mb-10">
+            My Schedule
+          </h1>
+          <AddClassForm onRefresh={fetchClasses} />
+        </div>
+
+        {fetching ? (
+          <Loader2 className="w-10 h-10 animate-spin text-[#00853E]" />
+        ) : classes.length > 0 ? (
+          <div className="w-full space-y-4">
+            {classes.map((cls) => (
+              <div key={cls.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm flex items-center justify-between transition-all hover:shadow-md group">
+                <div className="flex items-center gap-6">
+                  <div className="bg-green-50 p-5 rounded-[1.5rem] group-hover:bg-[#00853E]/10 transition-colors">
+                    <Calendar className="w-8 h-8 text-[#00853E]" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-2xl text-gray-800 tracking-tight">{cls.name}</h3>
+                    <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500 font-bold">
+                      <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-[#00853E]" />{cls.location}</span>
+                      <span className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-[#00853E]" />{cls.time}</span>
+                    </div>
                   </div>
                 </div>
-                <h3 className="text-xl font-bold text-gray-800">{item.course}</h3>
-                <div className="flex items-center gap-2 text-gray-500 font-medium text-sm">
-                  <FaMapMarkerAlt size={14} className="text-gray-300" />
-                  <span>{item.location}</span>
+
+                <div className="flex items-center gap-3">
+                   {/* NAVIGATE BUTTON: Takes user to Home and passes location */}
+                  <Link 
+                    href={`/?location=${encodeURIComponent(cls.location)}`}
+                    className="bg-[#00853E] hover:bg-[#006a31] text-white p-4 rounded-2xl transition-all active:scale-95 shadow-lg shadow-green-900/10 flex items-center gap-2"
+                  >
+                    <Navigation className="w-5 h-5" />
+                    <span className="font-bold hidden sm:inline pr-1">Navigate</span>
+                  </Link>
+
+                  <button 
+                    onClick={() => handleDelete(cls.id)}
+                    className="p-4 rounded-2xl text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
                 </div>
               </div>
-
-              {/* THE "GO TO CLASS" BUTTON */}
-              <Link 
-                href={`/home?navTo=${encodeURIComponent(item.location)}`}
-                className="h-12 px-8 bg-black text-white text-[11px] font-black uppercase tracking-widest rounded-2xl flex items-center gap-2 justify-center hover:bg-[#00853E] transition-all shadow-lg active:scale-95"
-              >
-                <FaLocationArrow size={12} />
-                Go to Class
-              </Link>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="w-full p-20 border-2 border-dashed border-gray-200 rounded-[3.5rem] text-center bg-white/50 backdrop-blur-sm shadow-sm flex flex-col items-center">
+             <div className="bg-gray-100 w-20 h-20 rounded-[1.5rem] flex items-center justify-center mb-6">
+               <Calendar className="text-gray-400 w-10 h-10" />
+             </div>
+             <h3 className="text-2xl font-black text-gray-800 tracking-tight">No classes found</h3>
+             <p className="text-gray-500 mt-3 font-medium text-lg max-w-[280px]">Add your UNT courses to start navigating easily.</p>
+          </div>
+        )}
       </div>
-    </div>
+    </main>
   );
 }

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { isAuth } from '@/src/lib/auth-utils';
 import { GlassNavProfile } from './GlassNavProfile';
+import { Calendar } from 'lucide-react';
 
 export default async function GlassNavbar() {
   const authenticated = await isAuth();
@@ -13,18 +14,17 @@ export default async function GlassNavbar() {
                         border border-white/40 rounded-[2rem] shadow-xl 
                         flex justify-between items-center">
         
-        {/* Left: Home Button with Larger Logo */}
+        {/* Left: Branding */}
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-4 group">
             <div className="bg-white p-2 rounded-2xl shadow-md border border-gray-100 transition-all group-hover:scale-110 group-active:scale-95">
-              {/* Increased size from 32 to 44 */}
               <Image 
                 src="/navLogo.png" 
                 alt="Nav-App Logo" 
                 width={44} 
                 height={44}
                 className="object-contain"
-                priority // Ensures logo loads immediately
+                priority 
               />
             </div>
             <div className="flex flex-col">
@@ -38,27 +38,34 @@ export default async function GlassNavbar() {
           </Link>
         </div>
         
-        {/* Right: Auth conditional rendering */}
-        <div className="flex items-center gap-8">
+        {/* Right Section: Navigation & Profile */}
+        <div className="flex items-center gap-4 sm:gap-6">
           {authenticated ? (
-            <GlassNavProfile />
-          ) : (
             <>
+              {/* Schedule Link placed near Profile */}
+              <Link 
+                href="/calendar" 
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-gray-700 hover:bg-white/60 transition-all font-bold text-sm"
+              >
+                <Calendar className="w-4 h-4 text-[#00853E]" />
+                <span className="hidden md:block">Schedule</span>
+              </Link>
+              
+              <GlassNavProfile />
+            </>
+          ) : (
+            <div className="flex items-center gap-3">
               <Link href="/login">
-                <button className="flex items-center gap-3 px-6 py-2.5 rounded-full 
-                                 bg-white/30 hover:bg-white/50 border border-white/50
-                                 backdrop-blur-xl transition-all active:scale-90 shadow-md text-base font-bold text-gray-800">
+                <button className="px-5 py-2 rounded-full bg-white/30 hover:bg-white/50 border border-white/50 backdrop-blur-xl transition-all active:scale-95 text-sm font-bold text-gray-800">
                   Login
                 </button>
               </Link>
               <Link href="/signup">
-                <button className="flex items-center gap-3 px-6 py-2.5 rounded-full 
-                                 bg-white/30 hover:bg-white/50 border border-white/50
-                                 backdrop-blur-xl transition-all active:scale-90 shadow-md text-base font-bold text-gray-800">
+                <button className="px-5 py-2 rounded-full bg-[#00853E] hover:bg-[#006a31] text-white transition-all active:scale-95 text-sm font-bold shadow-sm">
                   Signup
                 </button>
               </Link>
-            </>
+            </div>
           )}
         </div>
       </header>

@@ -1,13 +1,10 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "linux-musl", "rhel-openssl-3.0.x"]
-  output   = "../lib/generated/prisma"
+  output        = "../src/lib/generated/prisma" 
 }
 
 datasource db {
@@ -16,25 +13,31 @@ datasource db {
 }
 
 model User {
-  id            String    @id
+  id            String          @id
   name          String
-  email         String
-  emailVerified Boolean   @default(false)
+  email         String          @unique
+  emailVerified Boolean         @default(false)
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @default(now()) @updatedAt
+  
+  // Custom UNT Student Fields
+  major         String?
+  year          String?         // e.g., Senior, Junior
+  
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @default(now()) @updatedAt
+  
   sessions      Session[]
   accounts      Account[]
-  searchHistory SearchHistory[]
+  searchHistory SearchHistory[] 
+  classes       Class[]         // Relation to student schedule
 
-  @@unique([email])
   @@map("user")
 }
 
 model Session {
   id        String   @id
   expiresAt DateTime
-  token     String
+  token     String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   ipAddress String?
@@ -42,7 +45,6 @@ model Session {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([token])
   @@map("session")
 }
 
@@ -80,10 +82,22 @@ model SearchHistory {
   id        String   @id @default(cuid())
   query     String
   createdAt DateTime @default(now())
-
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@map("search_history")
+}
+
+model Class {
+  id        String   @id @default(cuid())
+  name      String
+  location  String?  
+  time      String?  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("class")
 }
