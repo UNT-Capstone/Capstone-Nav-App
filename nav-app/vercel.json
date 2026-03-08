@@ -1,8 +1,0 @@
-{
-  "functions": {
-    "src/app/api/**": {
-      "includeFiles": "lib/generated/prisma/**"
-    }
-  }
-}
-
