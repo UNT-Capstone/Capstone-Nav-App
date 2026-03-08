@@ -36,7 +36,7 @@ export function GlassNavProfile() {
                    backdrop-blur-md transition-all active:scale-95 shadow-sm"
       >
         <FaUserCircle className="text-2xl text-gray-600" />
-        <span className="text-base font-semibold text-gray-700 hidden md:block">Profile</span>
+        <span className="text-base font-semibold text-gray-700 hidden md:block">Settings</span>
       </button>
 
       {/* Matte Dropdown Menu */}
