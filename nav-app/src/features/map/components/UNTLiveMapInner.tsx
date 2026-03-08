@@ -34,7 +34,7 @@ export const FlyToMarker: React.FC<{
 
   useEffect(() => {
     if (map && position) {
-      const zoomLevel = isEvent ? 17 : 18; 
+      const zoomLevel = isEvent ? 16 : 15; 
       map.flyTo(position, zoomLevel, { duration: 1.5 });
     }
   }, [position, map, isEvent]);
@@ -65,10 +65,12 @@ const Routing = ({
   routeWhileDragging: false,
 
   showAlternatives: true,
+  collapsible: true,
+  show: false,
 
   lineOptions: {
     styles: [{ color: "#00853E", weight: 6 }],
-  } as any,
+  },
 
   altLineOptions: {
     styles: [{ color: "#999999", weight: 5, dashArray: "6,10" }],
