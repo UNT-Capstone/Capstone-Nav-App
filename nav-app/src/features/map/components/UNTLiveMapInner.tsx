@@ -8,7 +8,7 @@ import UNTSearchBar from "./UNTSearchBar";
 import ParkingOverlay from "../../parking/components/ParkingOverlay";
 import LocationDetailsPanel from "./LocationDetailsPanel";
 
-// --- Helper: Reverse Geocoding (MISSING PIECE ADDED BACK) ---
+// --- Helper: Reverse Geocoding ---
 const getNearestLocation = async (lat: number, lng: number) => {
   try {
     const response = await fetch(
@@ -26,15 +26,15 @@ const getNearestLocation = async (lat: number, lng: number) => {
 };
 
 // --- Component: FlyTo Logic ---
-export const FlyToMarker: React.FC<{ 
-  position: [number, number] | null; 
-  isEvent?: boolean 
+export const FlyToMarker: React.FC<{
+  position: [number, number] | null;
+  isEvent?: boolean;
 }> = ({ position, isEvent }) => {
   const map = useMap();
 
   useEffect(() => {
     if (map && position) {
-      const zoomLevel = isEvent ? 16 : 15; 
+      const zoomLevel = isEvent ? 16 : 15;
       map.flyTo(position, zoomLevel, { duration: 1.5 });
     }
   }, [position, map, isEvent]);
@@ -60,24 +60,71 @@ const Routing = ({
     const loadRouting = async () => {
       try {
         await import("leaflet-routing-machine");
+
         control = (L as any).Routing.control({
-  waypoints: [L.latLng(start[0], start[1]), L.latLng(end[0], end[1])],
-  routeWhileDragging: false,
+          waypoints: [L.latLng(start[0], start[1]), L.latLng(end[0], end[1])],
+          routeWhileDragging: false,
+          showAlternatives: true,
+          collapsible: true,
+          show: true,
 
-  showAlternatives: true,
-  collapsible: true,
-  show: false,
+          lineOptions: {
+            styles: [{ color: "#00853E", weight: 6 }],
+          },
 
-  lineOptions: {
-    styles: [{ color: "#00853E", weight: 6 }],
-  },
+          altLineOptions: {
+            styles: [{ color: "#999999", weight: 5, dashArray: "6,10" }],
+          },
 
-  altLineOptions: {
-    styles: [{ color: "#999999", weight: 5, dashArray: "6,10" }],
-  },
+          createMarker: (_: number, wp: any) => L.marker(wp.latLng),
+        }).addTo(map);
 
-  createMarker: (_: number, wp: any) => L.marker(wp.latLng),
-}).addTo(map);
+        // Helper: show only the directions panel for the given route index
+        const showOnlyRouteInstructions = (activeIndex: number) => {
+          const container = control.getContainer();
+          if (!container) return;
+
+          const altPanels = container.querySelectorAll(".leaflet-routing-alt");
+          altPanels.forEach((panel: Element, i: number) => {
+            (panel as HTMLElement).style.display =
+              i === activeIndex ? "block" : "none";
+          });
+        };
+
+        // After routes are found, hide alt directions and wire up click handlers
+        control.on("routesfound", (e: any) => {
+          const routes = e.routes;
+
+          // Show only primary route's instructions initially
+          setTimeout(() => {
+            showOnlyRouteInstructions(0);
+
+            // Wire up alt panel header clicks so clicking the summary swaps directions too
+            const container = control.getContainer();
+            if (!container) return;
+
+            const altPanels = container.querySelectorAll(".leaflet-routing-alt");
+            altPanels.forEach((panel: Element, i: number) => {
+              const header = panel.querySelector("h3, h2");
+              if (header) {
+                (header as HTMLElement).style.cursor = "pointer";
+                header.addEventListener("click", () => {
+                  showOnlyRouteInstructions(i);
+                });
+              }
+            });
+          }, 150);
+
+          // When user clicks an alternative line on the map, swap active directions
+          control.on("routeselected", (ev: any) => {
+            const selectedIndex = routes.findIndex(
+              (r: any) => r === ev.route
+            );
+            if (selectedIndex !== -1) {
+              showOnlyRouteInstructions(selectedIndex);
+            }
+          });
+        });
       } catch (err) {
         console.error("Routing Error:", err);
       }
@@ -106,14 +153,16 @@ const ClickToGetCoords = () => {
       alert(`Latitude: ${lat.toFixed(6)}, Longitude: ${lng.toFixed(6)}`);
     };
     map.on("click", onClick);
-    return () => { map.off("click", onClick); };
+    return () => {
+      map.off("click", onClick);
+    };
   }, [map]);
   return null;
 };
 
 // --- Main Component ---
 export default function UNTLiveMapInner() {
-  const searchParams = useSearchParams(); 
+  const searchParams = useSearchParams();
   const defaultPosition: [number, number] = [33.2104, -97.1503];
 
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
@@ -132,9 +181,11 @@ export default function UNTLiveMapInner() {
     if (typeof window === "undefined") return;
     delete (L.Icon.Default.prototype as any)._getIconUrl;
     L.Icon.Default.mergeOptions({
-      iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+      iconRetinaUrl:
+        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
       iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-      shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      shadowUrl:
+        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
     });
   }, []);
 
@@ -153,10 +204,10 @@ export default function UNTLiveMapInner() {
   useEffect(() => {
     const lat = searchParams.get("lat");
     const lng = searchParams.get("lng");
-    
+
     if (lat && lng) {
       setDestination([parseFloat(lat), parseFloat(lng)]);
-      setIsEventTarget(true); 
+      setIsEventTarget(true);
     }
   }, [searchParams]);
 
@@ -167,7 +218,11 @@ export default function UNTLiveMapInner() {
     getNearestLocation(lat, lng).then((name) => setNearestLocationName(name));
   }, [userPosition]);
 
-  const handleLocationSelect = (loc: { name: string; lat: number; lng: number }) => {
+  const handleLocationSelect = (loc: {
+    name: string;
+    lat: number;
+    lng: number;
+  }) => {
     setSelectedLocation(loc);
   };
 
@@ -205,13 +260,16 @@ export default function UNTLiveMapInner() {
         >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; OpenStreetMap contributors'
+            attribution="&copy; OpenStreetMap contributors"
           />
 
           {!showParking && <ClickToGetCoords />}
 
           {/* Intelligent Focus: Fly to Event Destination first, else User */}
-          <FlyToMarker position={destination || userPosition} isEvent={isEventTarget} />
+          <FlyToMarker
+            position={destination || userPosition}
+            isEvent={isEventTarget}
+          />
 
           {userPosition && (
             <Marker position={userPosition}>
@@ -235,17 +293,29 @@ export default function UNTLiveMapInner() {
 
       <style jsx global>{`
         .leaflet-routing-container {
-          background-color: #00853E !important;
+          background-color: #00853e !important;
           color: white !important;
           font-family: sans-serif;
           border-radius: 12px;
           padding: 12px;
           max-width: 300px;
-          box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
+        /* Hide all alt panels by default — JS shows only the active one */
         .leaflet-routing-alt {
+          display: none;
           max-height: 200px;
           overflow-y: auto;
+        }
+        .leaflet-routing-alt h3,
+        .leaflet-routing-alt h2 {
+          cursor: pointer;
+          padding: 4px 0;
+          margin: 0 0 6px 0;
+        }
+        .leaflet-routing-alt h3:hover,
+        .leaflet-routing-alt h2:hover {
+          text-decoration: underline;
         }
       `}</style>
     </div>
