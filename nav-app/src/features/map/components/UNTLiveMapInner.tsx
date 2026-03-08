@@ -292,30 +292,113 @@ export default function UNTLiveMapInner() {
       </div>
 
       <style jsx global>{`
+        /* Main container — dynamic height up to 60vh */
         .leaflet-routing-container {
           background-color: #00853e !important;
           color: white !important;
           font-family: sans-serif;
-          border-radius: 12px;
-          padding: 12px;
-          max-width: 300px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+          border-radius: 14px;
+          padding: 14px 16px;
+          width: 300px !important;
+          max-width: 92vw !important;
+          max-height: 60vh !important;
+          overflow: hidden;
+          display: flex !important;
+          flex-direction: column;
+          box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
         }
+
+        /* Top summary (e.g. "West Hickory Street — 3.2 km, 9 min") */
+        .leaflet-routing-container > h2 {
+          font-size: 13px !important;
+          font-weight: 700;
+          margin: 0 0 8px 0 !important;
+          padding-bottom: 8px;
+          border-bottom: 1px solid rgba(255,255,255,0.3);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          flex-shrink: 0;
+        }
+
         /* Hide all alt panels by default — JS shows only the active one */
         .leaflet-routing-alt {
           display: none;
-          max-height: 200px;
+          flex: 1;
           overflow-y: auto;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255,255,255,0.4) transparent;
         }
+        .leaflet-routing-alt::-webkit-scrollbar {
+          width: 5px;
+        }
+        .leaflet-routing-alt::-webkit-scrollbar-thumb {
+          background: rgba(255,255,255,0.4);
+          border-radius: 4px;
+        }
+
+        /* Alt route header (clickable to swap) */
         .leaflet-routing-alt h3,
         .leaflet-routing-alt h2 {
           cursor: pointer;
-          padding: 4px 0;
+          font-size: 13px !important;
+          font-weight: 700;
+          padding: 4px 0 6px 0;
           margin: 0 0 6px 0;
+          border-bottom: 1px solid rgba(255,255,255,0.2);
+          flex-shrink: 0;
         }
         .leaflet-routing-alt h3:hover,
         .leaflet-routing-alt h2:hover {
           text-decoration: underline;
+        }
+
+        /* Instruction rows table */
+        .leaflet-routing-alt table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+        .leaflet-routing-alt td {
+          padding: 6px 4px;
+          font-size: 13px;
+          line-height: 1.45;
+          border-bottom: 1px solid rgba(255,255,255,0.1);
+          vertical-align: middle;
+        }
+        .leaflet-routing-alt tr:last-child td {
+          border-bottom: none;
+        }
+        /* Distance badge (right column) */
+        .leaflet-routing-alt td:last-child {
+          text-align: right;
+          white-space: nowrap;
+          padding-left: 10px;
+          font-weight: 600;
+          font-size: 12px;
+          opacity: 0.85;
+        }
+
+        /* Turn icons */
+        .leaflet-routing-icon {
+          filter: brightness(10);
+          width: 18px;
+          height: 18px;
+        }
+
+        /* Collapse button */
+        .leaflet-routing-collapse-btn {
+          background: rgba(255,255,255,0.2) !important;
+          border-radius: 6px !important;
+          color: white !important;
+          font-size: 12px !important;
+          padding: 2px 8px !important;
+          border: none !important;
+          cursor: pointer !important;
+          margin-top: 6px;
+          flex-shrink: 0;
+        }
+        .leaflet-routing-collapse-btn:hover {
+          background: rgba(255,255,255,0.35) !important;
         }
       `}</style>
     </div>
