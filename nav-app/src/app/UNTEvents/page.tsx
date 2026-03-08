@@ -184,7 +184,7 @@ const UNTEventsPage: React.FC = () => {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 bg-white rounded-3xl shadow-2xl overflow-hidden h-[700px] border border-gray-100">
+        <div className="grid grid-cols-1 md:grid-cols-12 bg-white rounded-3xl shadow-2xl overflow-hidden min-h-[650px] md:h-[calc(100vh-180px)] border border-gray-100">
           {/* Sidebar */}
           <div className="md:col-span-4 border-r overflow-y-auto bg-[#fafafa]">
             {events.map((event) => (
