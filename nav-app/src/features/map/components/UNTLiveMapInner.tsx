@@ -61,11 +61,21 @@ const Routing = ({
       try {
         await import("leaflet-routing-machine");
         control = (L as any).Routing.control({
-          waypoints: [L.latLng(start[0], start[1]), L.latLng(end[0], end[1])],
-          routeWhileDragging: false,
-          lineOptions: { styles: [{ color: "#00853E", weight: 6 }] } as any,
-          createMarker: (_: number, wp: any) => L.marker(wp.latLng),
-        }).addTo(map);
+  waypoints: [L.latLng(start[0], start[1]), L.latLng(end[0], end[1])],
+  routeWhileDragging: false,
+
+  showAlternatives: true,
+
+  lineOptions: {
+    styles: [{ color: "#00853E", weight: 6 }],
+  } as any,
+
+  altLineOptions: {
+    styles: [{ color: "#999999", weight: 5, dashArray: "6,10" }],
+  },
+
+  createMarker: (_: number, wp: any) => L.marker(wp.latLng),
+}).addTo(map);
       } catch (err) {
         console.error("Routing Error:", err);
       }
