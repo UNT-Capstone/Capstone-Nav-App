@@ -14,7 +14,7 @@ export const auth = betterAuth({
       autoSignIn: true,
       sendResetPassword: async ({ user, url }) => {
         await resend.emails.send({
-          from: "UNT Navigator <noreply@yourdomain.com>",
+          from: "UNT Navigator <onboarding@resend.dev>",
           to: user.email,
           subject: "Reset your password",
           html: `
