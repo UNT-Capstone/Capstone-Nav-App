@@ -95,11 +95,9 @@ const Routing = ({
         control.on("routesfound", (e: any) => {
           const routes = e.routes;
 
-          // Show only primary route's instructions initially
           setTimeout(() => {
             showOnlyRouteInstructions(0);
 
-            // Wire up alt panel header clicks so clicking the summary swaps directions too
             const container = control.getContainer();
             if (!container) return;
 
@@ -115,7 +113,6 @@ const Routing = ({
             });
           }, 150);
 
-          // When user clicks an alternative line on the map, swap active directions
           control.on("routeselected", (ev: any) => {
             const selectedIndex = routes.findIndex(
               (r: any) => r === ev.route
@@ -265,7 +262,6 @@ export default function UNTLiveMapInner() {
 
           {!showParking && <ClickToGetCoords />}
 
-          {/* Intelligent Focus: Fly to Event Destination first, else User */}
           <FlyToMarker
             position={destination || userPosition}
             isEvent={isEventTarget}
@@ -292,7 +288,7 @@ export default function UNTLiveMapInner() {
       </div>
 
       <style jsx global>{`
-        /* Main container — dynamic height up to 60vh */
+        /* ── Desktop: top-right corner ── */
         .leaflet-routing-container {
           background-color: #00853e !important;
           color: white !important;
@@ -308,7 +304,24 @@ export default function UNTLiveMapInner() {
           box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
         }
 
-        /* Top summary (e.g. "West Hickory Street — 3.2 km, 9 min") */
+        /* ── Mobile: bottom sheet, full width, shorter height ── */
+        @media (max-width: 640px) {
+          .leaflet-routing-container {
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            top: auto !important;
+            width: 100vw !important;
+            max-width: 100vw !important;
+            max-height: 35vh !important;
+            border-radius: 16px 16px 0 0 !important;
+            padding: 12px 16px !important;
+            z-index: 1000 !important;
+          }
+        }
+
+        /* Top summary */
         .leaflet-routing-container > h2 {
           font-size: 13px !important;
           font-weight: 700;
@@ -321,7 +334,7 @@ export default function UNTLiveMapInner() {
           flex-shrink: 0;
         }
 
-        /* Hide all alt panels by default — JS shows only the active one */
+        /* Hide all alt panels by default */
         .leaflet-routing-alt {
           display: none;
           flex: 1;
@@ -337,7 +350,7 @@ export default function UNTLiveMapInner() {
           border-radius: 4px;
         }
 
-        /* Alt route header (clickable to swap) */
+        /* Alt route header */
         .leaflet-routing-alt h3,
         .leaflet-routing-alt h2 {
           cursor: pointer;
@@ -353,7 +366,7 @@ export default function UNTLiveMapInner() {
           text-decoration: underline;
         }
 
-        /* Instruction rows table */
+        /* Instruction rows */
         .leaflet-routing-alt table {
           width: 100%;
           border-collapse: collapse;
@@ -365,10 +378,19 @@ export default function UNTLiveMapInner() {
           border-bottom: 1px solid rgba(255,255,255,0.1);
           vertical-align: middle;
         }
+
+        @media (max-width: 640px) {
+          .leaflet-routing-alt td {
+            font-size: 12px;
+            padding: 5px 4px;
+          }
+        }
+
         .leaflet-routing-alt tr:last-child td {
           border-bottom: none;
         }
-        /* Distance badge (right column) */
+
+        /* Distance badge */
         .leaflet-routing-alt td:last-child {
           text-align: right;
           white-space: nowrap;
