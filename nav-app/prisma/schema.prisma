@@ -23,6 +23,8 @@ model User {
   sessions      Session[]
   accounts      Account[]
   searchHistory SearchHistory[]
+  sentFriendRequests     Friend[] @relation("FriendSender")
+  receivedFriendRequests Friend[] @relation("FriendReceiver")
 
   @@unique([email])
   @@map("user")
@@ -82,4 +84,19 @@ model SearchHistory {
 
   @@index([userId, createdAt])
   @@map("search_history")
+}
+
+model Friend {
+  id         String   @id @default(cuid())
+  status     String   @default("pending") // pending, accepted, blocked
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  senderId   String
+  receiverId String
+  sender     User     @relation("FriendSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User     @relation("FriendReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@index([receiverId, status])
+  @@map("friend")
 }
