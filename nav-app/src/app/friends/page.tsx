@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTRPC } from '@/src/trpc/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -17,7 +17,36 @@ export default function FriendsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('find');
 
   const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
+  const sendFriendRequestMutation = useMutation(
+    trpc.sendFriendRequest.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: trpc.searchUsers.queryKey(searchQuery) });
+        queryClient.invalidateQueries({ queryKey: trpc.getFriendIds.queryKey() });
+        queryClient.invalidateQueries({ queryKey: trpc.getFriendRequests.queryKey() });
+        queryClient.invalidateQueries({ queryKey: trpc.getSentFriendRequestIds.queryKey() });
+      },
+    })
+  );
+
+  const acceptFriendRequestMutation = useMutation(
+    trpc.acceptFriendRequest.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: trpc.getFriends.queryKey() });
+        queryClient.invalidateQueries({ queryKey: trpc.getFriendRequests.queryKey() });
+        queryClient.invalidateQueries({ queryKey: trpc.getFriendIds.queryKey() });
+      },
+    })
+  );
+
+  const rejectFriendRequestMutation = useMutation(
+    trpc.rejectFriendRequest.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: trpc.getFriendRequests.queryKey() });
+      },
+    })
+  );
 
   // Search users query
   const { data: searchResults = [], isLoading: isSearching, error: searchError } = useQuery(
@@ -31,6 +60,35 @@ export default function FriendsPage() {
     trpc.getFriends.queryOptions(undefined, {
       enabled: activeTab === 'friends',
     })
+  );
+
+  // Get current user query (for client-side self exclusion as fallback)
+  const { data: currentUserData = [] } = useQuery(
+    trpc.getUsers.queryOptions(undefined)
+  );
+  const currentUserId = currentUserData[0]?.id;
+
+  // Get sent friend request IDs to avoid duplicate pending requests
+  const { data: sentRequestIds = [] } = useQuery(
+    trpc.getSentFriendRequestIds.queryOptions(undefined)
+  );
+
+  // Get friend requests query
+  const { data: friendRequests = [], isLoading: isLoadingRequests, error: requestsError } = useQuery(
+    trpc.getFriendRequests.queryOptions(undefined, {
+      enabled: activeTab === 'requests',
+    })
+  );
+
+  // Get friend IDs to check existing friendships
+  const { data: friendIds = [] } = useQuery(
+    trpc.getFriendIds.queryOptions(undefined)
+  );
+
+  const filteredSearchResults = searchResults.filter(user =>
+    user.id !== currentUserId &&
+    !friendIds.includes(user.id) &&
+    !sentRequestIds.includes(user.id)
   );
 
   const handleSearch = () => {
@@ -59,11 +117,32 @@ export default function FriendsPage() {
   };
 
   const handleSendFriendRequest = async (userId: string) => {
-    // TODO: Implement friend request sending
-    alert(`Friend request sent to user ${userId}!`);
-    // Refresh search results
-    setTriggerSearch(false);
-    setTimeout(() => setTriggerSearch(true), 100);
+    try {
+      await sendFriendRequestMutation.mutateAsync(userId);
+      alert('Friend request sent successfully!');
+      setSearchQuery('');
+      setTriggerSearch(false);
+    } catch (error: any) {
+      alert(`Failed to send friend request: ${error?.message ?? String(error)}`);
+    }
+  };
+
+  const handleAcceptRequest = async (requestId: string) => {
+    try {
+      await acceptFriendRequestMutation.mutateAsync(requestId);
+      alert('Friend request accepted!');
+    } catch (error: any) {
+      alert(`Failed to accept friend request: ${error?.message ?? String(error)}`);
+    }
+  };
+
+  const handleRejectRequest = async (requestId: string) => {
+    try {
+      await rejectFriendRequestMutation.mutateAsync(requestId);
+      alert('Friend request rejected!');
+    } catch (error: any) {
+      alert(`Failed to reject friend request: ${error?.message ?? String(error)}`);
+    }
   };
 
   const getSearchPlaceholder = () => {
@@ -84,8 +163,8 @@ export default function FriendsPage() {
       case 'find':
         return (
           <div className="space-y-4">
-            {searchResults.length > 0 ? (
-              searchResults.map((user) => (
+            {filteredSearchResults.length > 0 ? (
+              filteredSearchResults.map((user) => (
                 <Card key={user.id} className="p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-center gap-4">
                     <Avatar>
@@ -156,8 +235,53 @@ export default function FriendsPage() {
 
       case 'requests':
         return (
-          <div className="text-center text-gray-500 py-8">
-            Friend requests feature coming soon!
+          <div className="space-y-4">
+            {isLoadingRequests ? (
+              <div className="text-center text-gray-500 py-8">Loading friend requests...</div>
+            ) : friendRequests.length > 0 ? (
+              friendRequests
+                .filter(request =>
+                  !searchQuery.trim() ||
+                  request.sender.name.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+                .map((request) => (
+                  <Card key={request.id} className="p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-4">
+                      <Avatar>
+                        <AvatarImage src={request.sender.image || ''} alt={request.sender.name} />
+                        <AvatarFallback>
+                          {request.sender.name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900">{request.sender.name}</h3>
+                        <p className="text-gray-600">{request.sender.email}</p>
+                        <p className="text-sm text-gray-500">Sent you a friend request</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleAcceptRequest(request.id)}
+                        >
+                          Accept
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRejectRequest(request.id)}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))
+            ) : (
+              <div className="text-center text-gray-500 py-8">
+                No pending friend requests.
+              </div>
+            )}
           </div>
         );
 
@@ -191,7 +315,6 @@ export default function FriendsPage() {
             variant={activeTab === 'requests' ? 'default' : 'outline'}
             onClick={() => handleTabChange('requests')}
             className="flex-1"
-            disabled
           >
             Requests
           </Button>
@@ -219,9 +342,9 @@ export default function FriendsPage() {
         </div>
 
         {/* Error Display */}
-        {(searchError || friendsError) && (
+        {(searchError || friendsError || requestsError) && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-            Error: {searchError?.message || friendsError?.message}
+            Error: {searchError?.message || friendsError?.message || requestsError?.message}
           </div>
         )}
 
