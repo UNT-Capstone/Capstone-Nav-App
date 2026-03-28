@@ -277,7 +277,7 @@ export default function UNTLiveMapInner() {
             <Marker position={destination}>
               <Popup>{searchParams.get("event") || "Destination"}</Popup>
             </Marker>
-          )}className="absolute z-[999] top-32 left-4 md:left-16 bg-white px-4 py-2 rounded-xl shadow font-bold text-[#00853E]"
+          )}
           {userPosition && destination && !showParking && (
             <Routing start={userPosition} end={destination} />
           )}
