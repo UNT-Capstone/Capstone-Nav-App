@@ -264,7 +264,7 @@ export default function UNTLiveMapInner() {
 
         <button
           onClick={() => setShowParking((p) => !p)}
-          
+          className="absolute z-[999] top-20 md:top-32 left-4 md:left-16 bg-white px-4 py-2 rounded-xl shadow font-bold text-[#00853E]"
         >
           {showParking ? "Hide Parking" : "Show Parking"}
         </button>
