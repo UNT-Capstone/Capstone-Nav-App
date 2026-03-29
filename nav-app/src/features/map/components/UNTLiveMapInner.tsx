@@ -79,7 +79,6 @@ const Routing = ({
           createMarker: (_: number, wp: any) => L.marker(wp.latLng),
         }).addTo(map);
 
-        // Helper: show only the directions panel for the given route index
         const showOnlyRouteInstructions = (activeIndex: number) => {
           const container = control.getContainer();
           if (!container) return;
@@ -91,7 +90,6 @@ const Routing = ({
           });
         };
 
-        // After routes are found, hide alt directions and wire up click handlers
         control.on("routesfound", (e: any) => {
           const routes = e.routes;
 
@@ -244,7 +242,7 @@ export default function UNTLiveMapInner() {
 
         <button
           onClick={() => setShowParking((p) => !p)}
-          
+          className="absolute z-[999] top-20 md:top-32 left-4 md:left-16 bg-white px-4 py-2 rounded-xl shadow font-bold text-[#00853E]"
         >
           {showParking ? "Hide Parking" : "Show Parking"}
         </button>
@@ -277,7 +275,8 @@ export default function UNTLiveMapInner() {
             <Marker position={destination}>
               <Popup>{searchParams.get("event") || "Destination"}</Popup>
             </Marker>
-          )}className="absolute z-[999] top-32 left-4 md:left-16 bg-white px-4 py-2 rounded-xl shadow font-bold text-[#00853E]"
+          )}
+
           {userPosition && destination && !showParking && (
             <Routing start={userPosition} end={destination} />
           )}
