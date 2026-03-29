@@ -35,6 +35,8 @@ export const auth = betterAuth({
       },
     },
     emailVerification: {
+      sendOnSignUp: true,
+      autoSignInAfterVerification: true,
       sendVerificationEmail: async ({ user, url }) => {
         await resend.emails.send({
           from: "UNT Navigator <noreply@untnavigation.me>",
@@ -57,6 +59,5 @@ export const auth = betterAuth({
           `,
         });
       },
-      autoSignInAfterVerification: true,
     },
 });
