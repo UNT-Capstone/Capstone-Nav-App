@@ -38,6 +38,8 @@ export const auth = betterAuth({
     emailVerification: {
       sendOnSignUp: true,
       autoSignInAfterVerification: true,
+      deleteUnverifiedUsers: true,
+      deleteUnverifiedUsersAfter: 60 * 3, // 3 minutes — unverified accounts auto-deleted
       sendVerificationEmail: async ({ user, url }) => {
         await resend.emails.send({
           from: "UNT Navigator <noreply@untnavigation.me>",
@@ -48,6 +50,7 @@ export const auth = betterAuth({
               <h2 style="color: #00853E;">Welcome to UNT Navigator! 🎉</h2>
               <p>Hi ${user.name || "there"},</p>
               <p>Thanks for signing up! Please verify your email address to get started.</p>
+              <p>⚠️ This link expires in <strong>3 minutes</strong>. If it expires, simply sign up again.</p>
               <a href="${url}" style="display:inline-block; margin-top:16px; padding:12px 24px;
                 background:#00853E; color:white; border-radius:8px;
                 text-decoration:none; font-weight:bold;">
