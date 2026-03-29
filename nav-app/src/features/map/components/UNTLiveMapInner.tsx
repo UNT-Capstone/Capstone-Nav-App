@@ -79,16 +79,36 @@ const Routing = ({
           createMarker: (_: number, wp: any) => L.marker(wp.latLng),
         }).addTo(map);
 
-        // Helper: show only the directions panel for the given route index
+        // Helper: show only the directions panel for the given route index with static current instruction block
         const showOnlyRouteInstructions = (activeIndex: number) => {
           const container = control.getContainer();
           if (!container) return;
 
+          let currentBlock = container.querySelector('.leaflet-routing-current-step') as HTMLElement;
+          if (!currentBlock) {
+            currentBlock = document.createElement('div');
+            currentBlock.className = 'leaflet-routing-current-step';
+            container.insertBefore(currentBlock, container.firstChild);
+          }
+
           const altPanels = container.querySelectorAll(".leaflet-routing-alt");
           altPanels.forEach((panel: Element, i: number) => {
-            (panel as HTMLElement).style.display =
-              i === activeIndex ? "block" : "none";
+            const panelEl = panel as HTMLElement;
+            const rows = panelEl.querySelectorAll("table tr");
+
+            panelEl.style.display = i === activeIndex ? "flex" : "none";
+
+            rows.forEach((row) => row.classList.remove("current-instruction"));
+            if (i === activeIndex && rows.length > 0) {
+              const firstRow = rows[0] as HTMLElement;
+              firstRow.classList.add("current-instruction");
+              currentBlock.innerText = firstRow.innerText.trim();
+            }
           });
+
+          if (altPanels.length === 0) {
+            currentBlock.innerText = "";
+          }
         };
 
         // After routes are found, hide alt directions and wire up click handlers
@@ -287,20 +307,35 @@ export default function UNTLiveMapInner() {
       </div>
 
       <style jsx global>{`
-        /* ── Desktop: top-right corner ── */
+        /* ── Desktop: mirror LocationDetailsPanel size ── */
         .leaflet-routing-container {
-          background-color: #00853e !important;
-          color: white !important;
+          background-color: #ffffff !important;
+          color: #1f2937 !important;
           font-family: sans-serif;
           border-radius: 14px;
           padding: 14px 16px;
-          width: 300px !important;
-          max-width: 92vw !important;
-          max-height: 60vh !important;
+          position: fixed !important;
+          top: 9rem !important;
+          right: 0 !important;
+          width: 18rem !important;
+          height: calc(80vh - 8rem) !important;
+          max-width: 18rem !important;
+          max-height: calc(80vh - 8rem) !important;
           overflow: hidden;
           display: flex !important;
           flex-direction: column;
-          box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
+        }
+        .leaflet-routing-container h2 {
+          background: #ecfdf5 !important;
+          color: #065f46 !important;
+          padding: 8px 10px !important;
+          border-radius: 8px;
+          margin-bottom: 8px !important;
+          font-size: 14px !important;
+          font-weight: 700 !important;
+          border: 1px solid #a7f3d0;
         }
 
         /* ── Mobile: bottom sheet, full width, shorter height ── */
@@ -320,26 +355,125 @@ export default function UNTLiveMapInner() {
           }
         }
 
-        /* Top summary */
+        /* Top summary
+           * keeps the container's route title prominent and aligned with the details panel theme
+           */
         .leaflet-routing-container > h2 {
-          font-size: 13px !important;
+          font-size: 14px !important;
           font-weight: 700;
           margin: 0 0 8px 0 !important;
-          padding-bottom: 8px;
-          border-bottom: 1px solid rgba(255,255,255,0.3);
+          padding: 8px 10px !important;
+          border: 1px solid #d1fae5;
+          border-radius: 8px;
+          background: #ecfdf5;
+          color: #065f46;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
           flex-shrink: 0;
         }
 
-        /* Hide all alt panels by default */
+        /* Hide all alt panels by default and create scrolling behavior */
         .leaflet-routing-alt {
+          display: none !important;
+          flex: 1 !important;
+          min-height: 0 !important;
+          overflow: hidden !important;
+          display: flex !important;
+          flex-direction: column !important;
+          background: #f8fafc !important;
+          border-radius: 10px !important;
+          border: 1px solid #dbeafe !important;
+          padding: 4px !important;
+        }
+
+        .leaflet-routing-current-step {
+          flex: none;
+          width: 100%;
+          display: block;
+          background: #00853e;
+          color: #ffffff;
+          font-weight: 600;
+          border: none;
+          border-radius: 8px;
+          margin-bottom: 8px;
+          padding: 10px 14px;
+          font-size: 14px;
+          line-height: 1.5;
+          text-align: center;
+          box-shadow: none;
+        }
+
+        .leaflet-routing-alt table {
+          width: 100% !important;
+          height: calc(100% - 72px) !important;
+          min-height: 0 !important;
+          max-height: calc(100% - 72px) !important;
+          overflow-y: auto !important;
+          display: block !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          border-collapse: collapse !important;
+        }
+
+        .leaflet-routing-alt tbody {
+          display: block !important;
+          width: 100% !important;
+        }
+
+        .leaflet-routing-alt tr {
+          display: table !important;
+          width: 100% !important;
+          table-layout: fixed !important;
+        }
+
+        .leaflet-routing-alt tr.current-instruction {
+          display: none !important;
+        }
+
+        /* Keep route summary sticky + consistent with location details theme */
+        .leaflet-routing-alt h2,
+        .leaflet-routing-alt h3 {
+          position: sticky;
+          top: 0;
+          z-index: 2;
+          margin: 0 0 8px 0;
+          padding: 8px 10px;
+          background: #ecfdf5;
+          color: #065f46;
+          border: 1px solid #a7f3d0;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+
+        .leaflet-routing-alt table {
+          width: 100%;
+          border-collapse: collapse;
+          min-height: 0;
+        }
+
+        .leaflet-routing-alt tbody {
+          display: block;
+        }
+
+        .leaflet-routing-alt tr {
+          display: table;
+          width: 100%;
+          table-layout: fixed;
+        }
+
+        .leaflet-routing-alt tr.current-instruction {
           display: none;
-          flex: 1;
-          overflow-y: auto;
-          scrollbar-width: thin;
-          scrollbar-color: rgba(255,255,255,0.4) transparent;
+        }
+
+        .leaflet-routing-alt tr:not(.current-instruction) {
+          background: #ffffff;
+        }
+
+        .leaflet-routing-alt tr:hover {
+          background: #d9f7ef;
         }
         .leaflet-routing-alt::-webkit-scrollbar {
           width: 5px;
@@ -349,21 +483,6 @@ export default function UNTLiveMapInner() {
           border-radius: 4px;
         }
 
-        /* Alt route header */
-        .leaflet-routing-alt h3,
-        .leaflet-routing-alt h2 {
-          cursor: pointer;
-          font-size: 13px !important;
-          font-weight: 700;
-          padding: 4px 0 6px 0;
-          margin: 0 0 6px 0;
-          border-bottom: 1px solid rgba(255,255,255,0.2);
-          flex-shrink: 0;
-        }
-        .leaflet-routing-alt h3:hover,
-        .leaflet-routing-alt h2:hover {
-          text-decoration: underline;
-        }
 
         /* Instruction rows */
         .leaflet-routing-alt table {

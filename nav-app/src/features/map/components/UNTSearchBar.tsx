@@ -56,7 +56,7 @@ export default function UNTSearchBar({ onSelect }: UNTSearchBarProps) {
   const filtered = results.slice(0, 8);
 
   return (
-    <div className="absolute top-28 md:top-32 left-1/2 transform -translate-x-1/2 w-[85vw] md:w-80 z-[2000]">
+    <div className="fixed top-28 md:top-32 left-1/2 transform -translate-x-1/2 w-[85vw] md:w-80 z-2000">
       <div className="relative">
         <input
           type="text"
