@@ -45,10 +45,14 @@ export default function SignupForm() {
         callbackURL: "/home",
       },
       {
-        onSuccess: () => {
-          toast.success("Account created! Please check your email to verify your account.");
-          router.push("/login");
-        },
+       onSuccess: () => {
+  // --- With email verification ---
+  toast.success("Account created! Please check your email to verify your account.");
+  router.push("/login");
+
+  // --- Without email verification (comment above, uncomment below) ---
+  // router.push("/home");
+},
         onError: (ctx) => {
           toast.error(ctx.error.message)
         }

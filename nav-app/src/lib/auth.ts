@@ -11,8 +11,8 @@ export const auth = betterAuth({
     }),
     emailAndPassword: {
       enabled: true,
-      autoSignIn: false,
-      requireEmailVerification: true,
+      autoSignIn: false, // true = no verification, false = verification required
+      requireEmailVerification: true, // false = no verification, true = verification required
       sendResetPassword: async ({ user, url }) => {
         await resend.emails.send({
           from: "UNT Navigator <noreply@untnavigation.me>",
