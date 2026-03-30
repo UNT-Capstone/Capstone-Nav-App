@@ -14,7 +14,7 @@ export default async function GlassNavbar() {
                         border border-white/40 rounded-[2rem] shadow-xl 
                         flex justify-between items-center">
         
-        {/* Left: Branding */}
+        {/* Left: Home Button & App Branding */}
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-4 group">
             <div className="bg-white p-2 rounded-2xl shadow-md border border-gray-100 transition-all group-hover:scale-110 group-active:scale-95">
@@ -24,7 +24,7 @@ export default async function GlassNavbar() {
                 width={44} 
                 height={44}
                 className="object-contain"
-                priority 
+                priority // Ensures logo loads immediately
               />
             </div>
             <div className="flex flex-col">
@@ -38,11 +38,11 @@ export default async function GlassNavbar() {
           </Link>
         </div>
         
-        {/* Right Section: Navigation & Profile */}
-        <div className="flex items-center gap-4 sm:gap-6">
+        {/* Right: Conditional Authentication Navigation */}
+        <div className="flex items-center gap-8">
           {authenticated ? (
-            <>
-              {/* Schedule Link placed near Profile */}
+            <div className="flex items-center gap-4">
+              {/* Schedule Navigation */}
               <Link 
                 href="/calendar" 
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-gray-700 hover:bg-white/60 transition-all font-bold text-sm"
@@ -51,21 +51,27 @@ export default async function GlassNavbar() {
                 <span className="hidden md:block">Schedule</span>
               </Link>
               
+              {/* User Profile & Friends Dropdown */}
               <GlassNavProfile />
-            </>
+            </div>
           ) : (
-            <div className="flex items-center gap-3">
+            <>
+              {/* Public Authentication Actions */}
               <Link href="/login">
-                <button className="px-5 py-2 rounded-full bg-white/30 hover:bg-white/50 border border-white/50 backdrop-blur-xl transition-all active:scale-95 text-sm font-bold text-gray-800">
+                <button className="flex items-center gap-3 px-6 py-2.5 rounded-full 
+                                 bg-white/30 hover:bg-white/50 border border-white/50
+                                 backdrop-blur-xl transition-all active:scale-90 shadow-md text-base font-bold text-gray-800">
                   Login
                 </button>
               </Link>
               <Link href="/signup">
-                <button className="px-5 py-2 rounded-full bg-[#00853E] hover:bg-[#006a31] text-white transition-all active:scale-95 text-sm font-bold shadow-sm">
+                <button className="flex items-center gap-3 px-6 py-2.5 rounded-full 
+                                 bg-white/30 hover:bg-white/50 border border-white/50
+                                 backdrop-blur-xl transition-all active:scale-90 shadow-md text-base font-bold text-gray-800">
                   Signup
                 </button>
               </Link>
-            </div>
+            </>
           )}
         </div>
       </header>
