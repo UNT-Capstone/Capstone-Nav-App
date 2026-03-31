@@ -27,6 +27,9 @@ export default function LoginForm() {
   const [forgotStatus, setForgotStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
   const [forgotError, setForgotError] = useState("");
 
+  // Resend verification state
+  const [resendStatus, setResendStatus] = useState<"idle" | "loading" | "sent">("idle");
+
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -66,6 +69,26 @@ export default function LoginForm() {
     } catch (err: any) {
       setForgotError(err?.message || "Something went wrong. Please try again.");
       setForgotStatus("error");
+    }
+  };
+
+  const handleResendVerification = async () => {
+    const email = form.getValues("email");
+    if (!email) {
+      toast.error("Enter your email above first");
+      return;
+    }
+    setResendStatus("loading");
+    try {
+      await authClient.sendVerificationEmail({
+        email,
+        callbackURL: "/home",
+      });
+      setResendStatus("sent");
+      toast.success("Verification email sent! Check your inbox.");
+    } catch (err: any) {
+      toast.error("Failed to resend. Please try again.");
+      setResendStatus("idle");
     }
   };
 
@@ -124,7 +147,7 @@ export default function LoginForm() {
                       />
                     </FormControl>
                     <FormMessage/>
-                    {/* Forgot password link — sits right below the password field */}
+                    {/* Forgot password link */}
                     <div className="text-right mt-1">
                       <button
                         type="button"
@@ -148,7 +171,23 @@ export default function LoginForm() {
           </form>
         </Form>
 
-        <p className="mt-6 text-gray-600 text-sm">
+        {/* Resend verification email */}
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={handleResendVerification}
+            disabled={resendStatus === "loading" || resendStatus === "sent"}
+            className="text-xs text-gray-400 hover:text-[#00853E] hover:underline disabled:opacity-50"
+          >
+            {resendStatus === "sent"
+              ? "✅ Verification email sent!"
+              : resendStatus === "loading"
+              ? "Sending..."
+              : "Didn't get verification email? Resend"}
+          </button>
+        </div>
+
+        <p className="mt-4 text-gray-600 text-sm">
           Don't have an account?{" "}
           <button
             onClick={() => router.push("/signup")}
@@ -159,11 +198,10 @@ export default function LoginForm() {
         </p>
       </motion.div>
 
-      {}
+      {/* Forgot Password Modal */}
       <AnimatePresence>
         {showForgot && (
           <>
-            {}
             <motion.div
               className="fixed inset-0 bg-black/40 z-40"
               initial={{ opacity: 0 }}
@@ -172,7 +210,6 @@ export default function LoginForm() {
               onClick={closeForgotModal}
             />
 
-            {}
             <motion.div
               className="fixed z-50 inset-0 flex items-center justify-center px-4"
               initial={{ opacity: 0, scale: 0.95 }}

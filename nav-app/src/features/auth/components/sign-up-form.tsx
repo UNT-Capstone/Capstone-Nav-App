@@ -45,9 +45,14 @@ export default function SignupForm() {
         callbackURL: "/home",
       },
       {
-        onSuccess: () => {
-          router.push("/home")
-        },
+       onSuccess: () => {
+  // --- With email verification ---
+  toast.success("Account created! Please check your email to verify your account.");
+  router.push("/login");
+
+  // --- Without email verification (comment above, uncomment below) ---
+  // router.push("/home");
+},
         onError: (ctx) => {
           toast.error(ctx.error.message)
         }
@@ -96,14 +101,14 @@ export default function SignupForm() {
                 name="email"
                 render={({ field }) =>(
                   <FormItem>
-                    <FormLabel>email</FormLabel>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
-                    <input
-                      type="email"
-                      placeholder="user@example.com"
-                      className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#00A85D]"
-                      {...field}
-                    />
+                      <input
+                        type="email"
+                        placeholder="user@example.com"
+                        className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#00A85D]"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage/>
                   </FormItem>
@@ -114,14 +119,14 @@ export default function SignupForm() {
                 name="password"
                 render={({ field }) =>(
                   <FormItem>
-                    <FormLabel>password</FormLabel>
+                    <FormLabel>Password</FormLabel>
                     <FormControl>
-                    <input
-                      type="password"
-                      placeholder="************"
-                      className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#00A85D]"
-                      {...field}
-                    />
+                      <input
+                        type="password"
+                        placeholder="************"
+                        className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#00A85D]"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage/>
                   </FormItem>
@@ -134,12 +139,12 @@ export default function SignupForm() {
                   <FormItem>
                     <FormLabel>Confirm Password</FormLabel>
                     <FormControl>
-                    <input
-                      type="password"
-                      placeholder="************"
-                      className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#00A85D]"
-                      {...field}
-                    />
+                      <input
+                        type="password"
+                        placeholder="************"
+                        className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#00A85D]"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage/>
                   </FormItem>
@@ -151,7 +156,7 @@ export default function SignupForm() {
               className="bg-[#00853E] text-white px-4 py-2 rounded hover:bg-[#007338] transition font-semibold"
               disabled={isPending}
             >
-              Sign up
+              {isPending ? "Creating account..." : "Sign up"}
             </button>
           </form>
         </Form>

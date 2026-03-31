@@ -60,8 +60,8 @@ export function GlassNavProfile() {
               </Link>
             </li>
             <li>
-              <Link href="/about" className={menuItemClass} onClick={() => setIsOpen(false)}>
-                About
+              <Link href="/friends" className={menuItemClass} onClick={() => setIsOpen(false)}>
+                Friends
               </Link>
             </li>
             
