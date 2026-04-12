@@ -2,8 +2,16 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useTRPC } from "@/src/trpc/client";
+import { useQuery } from "@tanstack/react-query";
 
 // --- INTERFACES ---
+interface UNTFriend {
+  id: string;
+  name: string;
+  image?: string;
+}
+
 interface UNTComment {
   id: number;
   parentId?: number; 
@@ -21,6 +29,7 @@ interface UNTEvent {
   first_date: string;
   isOfficial?: boolean; 
   createdBy?: string; 
+  taggedFriends?: UNTFriend[];
   filters: {
     event_types?: { name: string }[];
   };
@@ -37,7 +46,6 @@ interface CommentNodeProps {
   onReply: (comment: UNTComment) => void;
 }
 
-// --- SUB-COMPONENT: COMMENT THREADS ---
 const CommentNode: React.FC<CommentNodeProps> = ({ comment, allComments, level, onReply }) => {
   const children = allComments.filter(c => c.parentId === comment.id);
   const indentClass = level > 0 ? "ml-6 md:ml-10" : "";
@@ -74,20 +82,36 @@ const CommentNode: React.FC<CommentNodeProps> = ({ comment, allComments, level, 
   );
 };
 
-// --- MAIN CLIENT COMPONENT ---
+// --- MAIN COMPONENT ---
 interface UNTEventsPageProps {
   initialUserName: string;
 }
 
 const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
+  const router = useRouter();
+  const trpc = useTRPC();
+  
+  // --- STATE ---
   const [view, setView] = useState<"official" | "user">("official");
   const [events, setEvents] = useState<UNTEvent[]>([]);
   const [userEvents, setUserEvents] = useState<UNTEvent[]>([]);
   const [activeEventId, setActiveEventId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // --- USER STATE (Hydrated directly from Server Prop) ---
   const [currentUser] = useState({ name: initialUserName || "Mean Green Eagle" });
+
+  // --- EDITING STATE ---
+  const [isEditing, setIsEditing] = useState(false);
+  const [editEventId, setEditEventId] = useState<number | null>(null);
+
+  // --- FRIEND TAGGING STATE ---
+  const [showFriendPicker, setShowFriendPicker] = useState(false);
+  const [selectedFriends, setSelectedFriends] = useState<UNTFriend[]>([]);
+
+  const { data: friends = [] } = useQuery(
+    trpc.getFriends.queryOptions(undefined, {
+      enabled: true,
+    })
+  );
 
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ 
@@ -106,9 +130,7 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
   const [newComment, setNewComment] = useState("");
   const [replyingTo, setReplyingTo] = useState<UNTComment | null>(null);
 
-  const router = useRouter();
-
-  // Load persistence for UI state and content
+  // --- PERSISTENCE ---
   useEffect(() => {
     const savedComments = localStorage.getItem("unt_event_discussions");
     const savedUserEvents = localStorage.getItem("unt_user_events");
@@ -129,7 +151,6 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
     }
   }, []);
 
-  // Persist discussions and user-generated events locally
   useEffect(() => {
     localStorage.setItem("unt_event_discussions", JSON.stringify(comments));
   }, [comments]);
@@ -138,7 +159,6 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
     localStorage.setItem("unt_user_events", JSON.stringify(userEvents));
   }, [userEvents]);
 
-  // Fetch Official UNT Calendar API
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -157,6 +177,7 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
     fetchEvents();
   }, []);
 
+  // --- HANDLERS ---
   const handleGoToMap = (event: UNTEvent) => {
     const lat = event.geo?.latitude || "33.2108";
     const lng = event.geo?.longitude || "-97.1459";
@@ -169,24 +190,63 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
     router.push("/home");
   };
 
-  const handleCreateUserEvent = (e: React.FormEvent) => {
+  const openEditModal = (event: UNTEvent) => {
+    setIsEditing(true);
+    setEditEventId(event.id);
+    const [date, timeWithSeconds] = event.first_date.split('T');
+    setFormData({
+      title: event.title,
+      date: date,
+      time: timeWithSeconds.substring(0, 5),
+      location: event.location_name,
+      description: event.description_text,
+      lat: event.geo?.latitude || "33.2108",
+      lng: event.geo?.longitude || "-97.1459"
+    });
+    setSelectedFriends(event.taggedFriends || []);
+    setShowForm(true);
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newEvent: UNTEvent = {
-      id: Date.now(),
-      title: formData.title,
-      first_date: `${formData.date}T${formData.time}:00`,
-      location_name: formData.location,
-      description_text: formData.description,
-      createdBy: currentUser.name, // Stamped with real user name
-      isOfficial: false,
-      filters: { event_types: [{ name: "Student Post" }] },
-      geo: { latitude: formData.lat, longitude: formData.lng }
-    };
+    if (isEditing && editEventId) {
+      // Update existing event
+      setUserEvents(prev => prev.map(ev => ev.id === editEventId ? {
+        ...ev,
+        title: formData.title,
+        first_date: `${formData.date}T${formData.time}:00`,
+        location_name: formData.location,
+        description_text: formData.description,
+        taggedFriends: selectedFriends,
+        geo: { latitude: formData.lat, longitude: formData.lng }
+      } : ev));
+    } else {
+      // Create new event
+      const newEvent: UNTEvent = {
+        id: Date.now(),
+        title: formData.title,
+        first_date: `${formData.date}T${formData.time}:00`,
+        location_name: formData.location,
+        description_text: formData.description,
+        createdBy: currentUser.name,
+        taggedFriends: selectedFriends,
+        isOfficial: false,
+        filters: { event_types: [{ name: "Student Post" }] },
+        geo: { latitude: formData.lat, longitude: formData.lng }
+      };
+      setUserEvents([newEvent, ...userEvents]);
+      setActiveEventId(newEvent.id);
+    }
 
-    setUserEvents([newEvent, ...userEvents]);
+    closeForm();
+  };
+
+  const closeForm = () => {
     setShowForm(false);
-    setActiveEventId(newEvent.id);
+    setIsEditing(false);
+    setEditEventId(null);
+    setSelectedFriends([]);
     setFormData({ title: "", date: "", time: "", location: "", description: "", lat: "33.2108", lng: "-97.1459" });
   };
 
@@ -197,7 +257,7 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
     const comment: UNTComment = {
       id: Date.now(),
       parentId: replyingTo?.id,
-      user: currentUser.name, // Stamped with real user name
+      user: currentUser.name,
       text: newComment,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
@@ -235,7 +295,6 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-12 bg-white rounded-[2.5rem] shadow-2xl overflow-hidden md:h-[calc(100vh-340px)] border border-gray-100">
-          {/* Sidebar List */}
           <div className="md:col-span-4 border-r overflow-y-auto bg-[#fafafa]">
             {filteredEvents.map((event) => (
               <button key={event.id} onClick={() => { setActiveEventId(event.id); setShowForum(false); setReplyingTo(null); }} className={`w-full text-left p-6 border-b transition-all relative ${activeEventId === event.id ? "bg-white border-l-[10px] border-l-[#00853E] shadow-inner" : "opacity-60 hover:opacity-100"}`}>
@@ -249,15 +308,25 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
             ))}
           </div>
 
-          {/* Details Content */}
           <div className="md:col-span-8 p-6 md:p-12 overflow-y-auto bg-white flex flex-col relative">
             {activeEvent ? (
               <div className="h-full flex flex-col animate-in fade-in slide-in-from-bottom-4">
-                <div className="mb-6 flex items-center justify-between">
+                <div className="mb-6 flex flex-wrap gap-2 items-center">
                   {activeEvent.isOfficial ? (
                     <span className="bg-[#00853E] text-white text-[9px] px-3 py-1.5 rounded-full font-black tracking-widest">🦅 VERIFIED OFFICIAL UNT EVENT</span>
                   ) : (
-                    <span className="bg-gray-100 text-gray-600 text-[9px] px-3 py-1.5 rounded-full font-black tracking-widest">👤 POSTED BY: {activeEvent.createdBy || "Anonymous Student"}</span>
+                    <>
+                      <span className="bg-gray-100 text-gray-600 text-[9px] px-3 py-1.5 rounded-full font-black tracking-widest">👤 POSTED BY: {activeEvent.createdBy}</span>
+                      {activeEvent.taggedFriends?.map(friend => (
+                        <span key={friend.id} className="bg-green-50 text-[#00853E] text-[9px] px-3 py-1.5 rounded-full font-black tracking-widest border border-green-100">🤝 WITH {friend.name.toUpperCase()}</span>
+                      ))}
+                      {/* --- EDIT BUTTON FOR OWNER --- */}
+                      {activeEvent.createdBy === currentUser.name && (
+                        <button onClick={() => openEditModal(activeEvent)} className="ml-auto text-[9px] font-black text-gray-400 hover:text-[#00853E] uppercase tracking-widest underline underline-offset-4 decoration-2">
+                          Edit Post
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
                 <h2 className="text-3xl md:text-5xl font-black mb-8 text-gray-900 tracking-tighter leading-tight">{activeEvent.title}</h2>
@@ -278,15 +347,11 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
                   <button onClick={() => setShowForum(true)} className="px-8 py-5 bg-white text-gray-900 border-2 border-gray-900 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-gray-900 hover:text-white transition-all shadow-md">
                     💬 Discussion ({(comments[activeEventId!] || []).length})
                   </button>
-                  {activeEvent.localist_url && (
-                    <a href={activeEvent.localist_url} target="_blank" className="px-8 py-5 bg-gray-100 text-gray-800 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-gray-200 transition-all border border-gray-200">Official Page</a>
-                  )}
                   <button onClick={() => handleGoToMap(activeEvent)} className="px-8 py-5 bg-[#00853E] text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex-grow text-center hover:bg-[#006a31] shadow-lg transition-all">
                     🗺️ Route on Map
                   </button>
                 </div>
 
-                {/* Forum Overlay */}
                 {showForum && (
                   <div className="absolute inset-0 bg-white z-20 p-8 flex flex-col animate-in slide-in-from-right duration-300">
                     <div className="flex justify-between items-center mb-8 pb-4 border-b">
@@ -324,27 +389,59 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
         </div>
       </div>
 
-      {/* Creation Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-md">
           <div className="bg-white rounded-[2.5rem] p-10 w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-3xl font-black text-[#00853E] uppercase mb-8 tracking-tighter">New Community Post</h3>
-            <form onSubmit={handleCreateUserEvent} className="space-y-4">
-              <input required placeholder="Event Name" className="w-full p-4 bg-gray-100 rounded-2xl outline-none text-sm" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+            <h3 className="text-3xl font-black text-[#00853E] uppercase mb-8 tracking-tighter">
+              {isEditing ? "Edit Post" : "New Community Post"}
+            </h3>
+            <form onSubmit={handleFormSubmit} className="space-y-4">
+              <input required placeholder="Event Name" className="w-full p-4 bg-gray-100 rounded-2xl outline-none text-sm font-bold" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
               <div className="grid grid-cols-2 gap-4">
                 <input required type="date" className="p-4 bg-gray-100 rounded-2xl outline-none text-sm" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
                 <input required type="time" className="p-4 bg-gray-100 rounded-2xl outline-none text-sm" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} />
               </div>
+              
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-gray-400 ml-2">Tag Friends</label>
+                <div className="flex flex-wrap gap-2 mb-1">
+                  {selectedFriends.map(friend => (
+                    <span key={friend.id} className="bg-[#00853E]/10 text-[#00853E] px-3 py-1 rounded-full text-[10px] font-black flex items-center gap-2">
+                      {friend.name.toUpperCase()}
+                      <button type="button" onClick={() => setSelectedFriends(prev => prev.filter(f => f.id !== friend.id))} className="hover:text-red-500 font-bold">✕</button>
+                    </span>
+                  ))}
+                </div>
+                <button type="button" onClick={() => setShowFriendPicker(!showFriendPicker)} className="w-full p-4 bg-gray-100 rounded-2xl text-left text-xs text-gray-500 flex justify-between items-center border border-transparent hover:border-gray-200 transition-all">
+                  {showFriendPicker ? "Close Friend List" : "Add Friends to this event..."}
+                  <span className="text-[8px]">{showFriendPicker ? "▲" : "▼"}</span>
+                </button>
+                {showFriendPicker && (
+                  <div className="bg-white border border-gray-100 rounded-2xl shadow-xl max-h-40 overflow-y-auto p-2 grid grid-cols-1 gap-1 animate-in slide-in-from-top-2">
+                    {friends.length > 0 ? friends.map(friend => (
+                      <button key={friend.id} type="button" onClick={() => { if (!selectedFriends.find(f => f.id === friend.id)) setSelectedFriends([...selectedFriends, friend as UNTFriend]); }} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-xl transition-all text-left">
+                        <div className="w-7 h-7 bg-[#00853E] rounded-full flex items-center justify-center text-white text-[10px] font-black">
+                          {friend.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-xs font-bold text-gray-700">{friend.name}</span>
+                      </button>
+                    )) : <p className="text-center py-4 text-[10px] text-gray-400 uppercase font-black">No friends found</p>}
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <input required placeholder="Location Name" className="w-full p-4 bg-gray-100 rounded-2xl outline-none text-sm" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
                 <button type="button" onClick={handlePickOnMap} className="w-full py-3 bg-gray-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[#00853E] transition-all flex items-center justify-center gap-2">
                   📍 {formData.lat !== "33.2108" ? "Location Set (Change)" : "Pinpoint Precise Spot on Map"}
                 </button>
               </div>
-              <textarea required placeholder="Description" rows={4} className="w-full p-4 bg-gray-100 rounded-2xl outline-none text-sm resize-none" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+              <textarea required placeholder="Description" rows={3} className="w-full p-4 bg-gray-100 rounded-2xl outline-none text-sm resize-none" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
               <div className="flex gap-4 pt-4">
-                <button type="button" onClick={() => setShowForm(false)} className="flex-grow py-5 bg-gray-200 rounded-2xl font-black uppercase text-[10px]">Cancel</button>
-                <button type="submit" className="flex-grow py-5 bg-[#00853E] text-white rounded-2xl font-black uppercase text-[10px]">Post to Feed</button>
+                <button type="button" onClick={closeForm} className="flex-grow py-5 bg-gray-200 rounded-2xl font-black uppercase text-[10px]">Cancel</button>
+                <button type="submit" className="flex-grow py-5 bg-[#00853E] text-white rounded-2xl font-black uppercase text-[10px]">
+                  {isEditing ? "Save Changes" : "Post to Feed"}
+                </button>
               </div>
             </form>
           </div>
