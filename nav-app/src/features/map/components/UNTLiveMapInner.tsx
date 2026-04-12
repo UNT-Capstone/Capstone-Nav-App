@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import UNTSearchBar from "./UNTSearchBar";
 import ParkingOverlay from "../../parking/components/ParkingOverlay";
 import LocationDetailsPanel from "./LocationDetailsPanel";
@@ -39,6 +39,25 @@ export const FlyToMarker: React.FC<{
     }
   }, [position, map, isEvent]);
 
+  return null;
+};
+
+// --- NEW Component: Location Picker Logic ---
+const LocationPicker = ({ onPick }: { onPick: (lat: number, lng: number) => void }) => {
+  const map = useMap();
+  useEffect(() => {
+    const onClick = (e: any) => {
+      onPick(e.latlng.lat, e.latlng.lng);
+    };
+    map.on("click", onClick);
+    // Change cursor to crosshair to indicate selection mode
+    map.getContainer().style.cursor = 'crosshair';
+    
+    return () => {
+      map.off("click", onClick);
+      map.getContainer().style.cursor = '';
+    };
+  }, [map, onPick]);
   return null;
 };
 
@@ -180,6 +199,7 @@ const ClickToGetCoords = () => {
 // --- Main Component ---
 export default function UNTLiveMapInner() {
   const searchParams = useSearchParams();
+  const router = useRouter(); 
   const defaultPosition: [number, number] = [33.2104, -97.1503];
 
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
@@ -187,6 +207,7 @@ export default function UNTLiveMapInner() {
   const [destination, setDestination] = useState<[number, number] | null>(null);
   const [showParking, setShowParking] = useState(false);
   const [isEventTarget, setIsEventTarget] = useState(false);
+  const [isPickingMode, setIsPickingMode] = useState(false); 
   const [selectedLocation, setSelectedLocation] = useState<{
     name: string;
     lat: number;
@@ -204,6 +225,10 @@ export default function UNTLiveMapInner() {
       shadowUrl:
         "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
     });
+
+    if (localStorage.getItem("unt_picking_mode") === "true") {
+      setIsPickingMode(true);
+    }
   }, []);
 
   // Geolocation Watcher
@@ -251,10 +276,20 @@ export default function UNTLiveMapInner() {
     }
   };
 
+  const handleMapPick = (lat: number, lng: number) => {
+    localStorage.setItem("unt_last_picked_coord", JSON.stringify({ 
+      lat: lat.toFixed(6), 
+      lng: lng.toFixed(6) 
+    }));
+    localStorage.removeItem("unt_picking_mode");
+    setIsPickingMode(false);
+    router.back();
+  };
+
   return (
     <div className="flex flex-col items-center justify-center h-full bg-blue-50 w-screen">
       <div className="relative w-screen h-full">
-        <UNTSearchBar onSelect={handleLocationSelect} />
+        {!isPickingMode && <UNTSearchBar onSelect={handleLocationSelect} />}
 
         <LocationDetailsPanel
           location={selectedLocation}
@@ -262,12 +297,28 @@ export default function UNTLiveMapInner() {
           onDirections={handleGetDirections}
         />
 
-        <button
-          onClick={() => setShowParking((p) => !p)}
-          className="absolute z-[999] top-20 md:top-32 left-4 md:left-16 bg-white px-4 py-2 rounded-xl shadow font-bold text-[#00853E]"
-        >
-          {showParking ? "Hide Parking" : "Show Parking"}
-        </button>
+        {isPickingMode ? (
+          /* Moved the message lower from top-24 to top-40 */
+          <div className="absolute z-[1000] top-40 left-1/2 -translate-x-1/2 bg-[#00853E] text-white px-8 py-4 rounded-2xl shadow-2xl font-black uppercase text-xs tracking-widest flex items-center gap-4 animate-bounce">
+            📍 Tap map to set event location
+            <button 
+              onClick={() => {
+                localStorage.removeItem("unt_picking_mode");
+                setIsPickingMode(false);
+              }} 
+              className="bg-white/20 px-3 py-1 rounded-lg text-[10px] hover:bg-white/40"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowParking((p) => !p)}
+            className="absolute z-[999] top-20 md:top-32 left-4 md:left-16 bg-white px-4 py-2 rounded-xl shadow font-bold text-[#00853E]"
+          >
+            {showParking ? "Hide Parking" : "Show Parking"}
+          </button>
+        )}
 
         <MapContainer
           center={defaultPosition}
@@ -280,7 +331,11 @@ export default function UNTLiveMapInner() {
             attribution="&copy; OpenStreetMap contributors"
           />
 
-          {!showParking && <ClickToGetCoords />}
+          {isPickingMode ? (
+            <LocationPicker onPick={handleMapPick} />
+          ) : (
+            !showParking && <ClickToGetCoords />
+          )}
 
           <FlyToMarker
             position={destination || userPosition}
@@ -298,7 +353,8 @@ export default function UNTLiveMapInner() {
               <Popup>{searchParams.get("event") || "Destination"}</Popup>
             </Marker>
           )}
-          {userPosition && destination && !showParking && (
+          
+          {userPosition && destination && !showParking && !isPickingMode && (
             <Routing start={userPosition} end={destination} />
           )}
 
@@ -355,9 +411,6 @@ export default function UNTLiveMapInner() {
           }
         }
 
-        /* Top summary
-           * keeps the container's route title prominent and aligned with the details panel theme
-           */
         .leaflet-routing-container > h2 {
           font-size: 14px !important;
           font-weight: 700;
@@ -373,7 +426,6 @@ export default function UNTLiveMapInner() {
           flex-shrink: 0;
         }
 
-        /* Hide all alt panels by default and create scrolling behavior */
         .leaflet-routing-alt {
           display: none !important;
           flex: 1 !important;
@@ -431,7 +483,6 @@ export default function UNTLiveMapInner() {
           display: none !important;
         }
 
-        /* Keep route summary sticky + consistent with location details theme */
         .leaflet-routing-alt h2,
         .leaflet-routing-alt h3 {
           position: sticky;
@@ -454,20 +505,6 @@ export default function UNTLiveMapInner() {
           min-height: 0;
         }
 
-        .leaflet-routing-alt tbody {
-          display: block;
-        }
-
-        .leaflet-routing-alt tr {
-          display: table;
-          width: 100%;
-          table-layout: fixed;
-        }
-
-        .leaflet-routing-alt tr.current-instruction {
-          display: none;
-        }
-
         .leaflet-routing-alt tr:not(.current-instruction) {
           background: #ffffff;
         }
@@ -483,12 +520,6 @@ export default function UNTLiveMapInner() {
           border-radius: 4px;
         }
 
-
-        /* Instruction rows */
-        .leaflet-routing-alt table {
-          width: 100%;
-          border-collapse: collapse;
-        }
         .leaflet-routing-alt td {
           padding: 6px 4px;
           font-size: 13px;
@@ -508,7 +539,6 @@ export default function UNTLiveMapInner() {
           border-bottom: none;
         }
 
-        /* Distance badge */
         .leaflet-routing-alt td:last-child {
           text-align: right;
           white-space: nowrap;
@@ -518,14 +548,12 @@ export default function UNTLiveMapInner() {
           opacity: 0.85;
         }
 
-        /* Turn icons */
         .leaflet-routing-icon {
           filter: brightness(10);
           width: 18px;
           height: 18px;
         }
 
-        /* Collapse button */
         .leaflet-routing-collapse-btn {
           background: rgba(255,255,255,0.2) !important;
           border-radius: 6px !important;
