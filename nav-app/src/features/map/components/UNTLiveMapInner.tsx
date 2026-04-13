@@ -234,8 +234,8 @@ export default function UNTLiveMapInner() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-full bg-blue-50 w-screen">
-      <div className="relative w-screen h-full">
+    <div className="flex flex-col items-center justify-center h-screen w-screen">
+      <div className="relative w-screen h-screen">
         <UNTSearchBar onSelect={handleLocationSelect} />
 
         <LocationDetailsPanel
@@ -255,7 +255,7 @@ export default function UNTLiveMapInner() {
           center={defaultPosition}
           zoom={16}
           scrollWheelZoom
-          className="w-full h-full rounded-none shadow-lg"
+          style={{ width: "100%", height: "100vh" }}
         >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -280,7 +280,7 @@ export default function UNTLiveMapInner() {
               <Popup>{searchParams.get("location") || searchParams.get("event") || "Destination"}</Popup>
             </Marker>
           )}
-          
+
           {userPosition && destination && !showParking && (
             <Routing start={userPosition} end={destination} />
           )}
@@ -439,6 +439,10 @@ export default function UNTLiveMapInner() {
           border-radius: 4px;
         }
 
+        .leaflet-routing-alt table {
+          width: 100%;
+          border-collapse: collapse;
+        }
         .leaflet-routing-alt td {
           padding: 6px 4px;
           font-size: 13px;
@@ -452,6 +456,10 @@ export default function UNTLiveMapInner() {
             font-size: 12px;
             padding: 5px 4px;
           }
+        }
+
+        .leaflet-routing-alt tr:last-child td {
+          border-bottom: none;
         }
 
         .leaflet-routing-alt td:last-child {
