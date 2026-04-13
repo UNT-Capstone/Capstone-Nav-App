@@ -20,7 +20,6 @@ export default function LocationDetailsPanel({
 }: LocationDetailsPanelProps) {
   const [isAddedToFavorites, setIsAddedToFavorites] = useState(false);
 
-  // If no location selected
   if (!location) return null;
 
   return (
@@ -30,13 +29,14 @@ export default function LocationDetailsPanel({
         w-[90vw] max-w-sm
         max-h-[calc(100vh-6rem)]
         bg-white shadow-2xl
-        z-50 flex flex-col
+        z-[10000]
+        flex flex-col
         rounded-lg
         overflow-hidden
       "
     >
       {/* HEADER */}
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center justify-between p-4 border-b bg-white">
         <h2 className="text-lg font-bold text-gray-800">
           Location Details
         </h2>
@@ -61,7 +61,6 @@ export default function LocationDetailsPanel({
             <span className="font-medium">Latitude:</span>{" "}
             {location.lat.toFixed(4)}
           </p>
-
           <p className="text-sm text-gray-600">
             <span className="font-medium">Longitude:</span>{" "}
             {location.lng.toFixed(4)}
@@ -69,7 +68,7 @@ export default function LocationDetailsPanel({
         </div>
       </div>
 
-      {/* BUTTONS (always visible) */}
+      {/* BUTTONS */}
       <div className="border-t p-4 space-y-2 shrink-0 bg-white">
         {/* Directions */}
         <button
