@@ -13,13 +13,23 @@ interface UNTSearchBarProps {
   onSelect: (loc: { name: string; lat: number; lng: number }) => void;
 }
 
+// ✅ UPDATED: Denton-restricted geocoding
 async function geocodeLocation(query: string): Promise<LocationResult[]> {
   try {
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        query + " Denton Texas"
+      )}&limit=5&bounded=1&viewbox=-97.30,33.32,-97.00,33.05`
     );
+
     const results = await response.json();
-    return results.map((result: any) => ({
+
+    // optional safety filter
+    const filtered = results.filter((result: any) =>
+      result.display_name?.includes("Denton")
+    );
+
+    return filtered.map((result: any) => ({
       name: result.display_name,
       lat: parseFloat(result.lat),
       lng: parseFloat(result.lon),
@@ -65,6 +75,7 @@ export default function UNTSearchBar({ onSelect }: UNTSearchBarProps) {
           onChange={(e) => setQuery(e.target.value)}
           className="w-full p-3 border rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         />
+
         {loading && (
           <div className="absolute right-3 top-3 text-gray-500">
             Loading...
@@ -99,8 +110,10 @@ export default function UNTSearchBar({ onSelect }: UNTSearchBarProps) {
                 <div className="font-medium text-sm">{loc.name}</div>
               </div>
             ))
-          ) : !loading && query.length > 0 ? (
-            <p className="p-3 text-gray-500 text-center">No locations found</p>
+          ) : !loading ? (
+            <p className="p-3 text-gray-500 text-center">
+              No locations found
+            </p>
           ) : null}
         </div>
       )}
