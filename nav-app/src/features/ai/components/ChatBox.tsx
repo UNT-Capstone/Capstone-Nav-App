@@ -1,56 +1,58 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function ChatBox() {
+  const [mounted, setMounted] = useState(false);
   const [message, setMessage] = useState("");
   const [reply, setReply] = useState("");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
   async function sendMessage() {
     if (!message.trim()) return;
-
     setLoading(true);
-
     try {
       const res = await fetch("/api/agent", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message }),
       });
-
       const data = await res.json();
       setReply(data.reply || "No response received");
     } catch (err) {
       setReply("Error connecting to AI");
     }
-
     setLoading(false);
   }
 
   return (
     <div style={styles.container}>
-      <h3>Navi AI</h3>
+      <h3 style={{ margin: "0 0 12px 0", color: "#00853E", fontSize: 16, fontWeight: 700 }}>
+        🧭 Navi AI
+      </h3>
 
       <input
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        placeholder="Ask something..."
+        onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+        placeholder="Ask something about UNT..."
         style={styles.input}
       />
 
-      <button onClick={sendMessage} style={styles.button}>
-        Send
+      <button onClick={sendMessage} disabled={loading} style={styles.button}>
+        {loading ? "Thinking..." : "Send"}
       </button>
-
-      {loading && <p>Thinking...</p>}
 
       {reply && (
         <div style={styles.replyBox}>
-          <strong>Reply:</strong>
-          <p>{reply}</p>
+          <strong>Navi:</strong>
+          <p style={{ margin: "6px 0 0 0" }}>{reply}</p>
         </div>
       )}
     </div>
@@ -60,21 +62,37 @@ export default function ChatBox() {
 const styles: Record<string, React.CSSProperties> = {
   container: {
     padding: 16,
-    border: "1px solid #ddd",
-    borderRadius: 10,
+    border: "1px solid #e5e7eb",
+    borderRadius: 12,
     width: 320,
+    background: "#ffffff",
+    boxShadow: "0 4px 24px rgba(0,0,0,0.15)",
   },
   input: {
     width: "100%",
     padding: 8,
     marginBottom: 10,
+    borderRadius: 6,
+    border: "1px solid #d1d5db",
+    fontSize: 14,
+    boxSizing: "border-box",
   },
   button: {
-    padding: "8px 12px",
+    padding: "8px 16px",
+    background: "#00853E",
+    color: "#fff",
+    border: "none",
+    borderRadius: 6,
+    cursor: "pointer",
+    fontWeight: 600,
+    fontSize: 14,
   },
   replyBox: {
-    marginTop: 10,
+    marginTop: 12,
     padding: 10,
-    background: "#f5f5f5",
+    background: "#f0fdf4",
+    borderRadius: 8,
+    fontSize: 14,
+    color: "#1f2937",
   },
 };
