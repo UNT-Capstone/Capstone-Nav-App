@@ -79,7 +79,6 @@ const Routing = ({
           createMarker: (_: number, wp: any) => L.marker(wp.latLng),
         }).addTo(map);
 
-        // Helper: show only the directions panel for the given route index with static current instruction block
         const showOnlyRouteInstructions = (activeIndex: number) => {
           const container = control.getContainer();
           if (!container) return;
@@ -111,7 +110,6 @@ const Routing = ({
           }
         };
 
-        // After routes are found, hide alt directions and wire up click handlers
         control.on("routesfound", (e: any) => {
           const routes = e.routes;
 
@@ -252,8 +250,8 @@ export default function UNTLiveMapInner() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-full bg-blue-50 w-screen">
-      <div className="relative w-screen h-full">
+    <div className="flex flex-col items-center justify-center h-screen w-screen">
+      <div className="relative w-screen h-screen">
         <UNTSearchBar onSelect={handleLocationSelect} />
 
         <LocationDetailsPanel
@@ -273,7 +271,7 @@ export default function UNTLiveMapInner() {
           center={defaultPosition}
           zoom={16}
           scrollWheelZoom
-          className="w-full h-full rounded-none shadow-lg"
+          style={{ width: "100%", height: "100vh" }}
         >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -298,6 +296,7 @@ export default function UNTLiveMapInner() {
               <Popup>{searchParams.get("event") || "Destination"}</Popup>
             </Marker>
           )}
+
           {userPosition && destination && !showParking && (
             <Routing start={userPosition} end={destination} />
           )}
@@ -355,9 +354,6 @@ export default function UNTLiveMapInner() {
           }
         }
 
-        /* Top summary
-           * keeps the container's route title prominent and aligned with the details panel theme
-           */
         .leaflet-routing-container > h2 {
           font-size: 14px !important;
           font-weight: 700;
@@ -373,7 +369,6 @@ export default function UNTLiveMapInner() {
           flex-shrink: 0;
         }
 
-        /* Hide all alt panels by default and create scrolling behavior */
         .leaflet-routing-alt {
           display: none !important;
           flex: 1 !important;
@@ -431,7 +426,6 @@ export default function UNTLiveMapInner() {
           display: none !important;
         }
 
-        /* Keep route summary sticky + consistent with location details theme */
         .leaflet-routing-alt h2,
         .leaflet-routing-alt h3 {
           position: sticky;
@@ -483,8 +477,6 @@ export default function UNTLiveMapInner() {
           border-radius: 4px;
         }
 
-
-        /* Instruction rows */
         .leaflet-routing-alt table {
           width: 100%;
           border-collapse: collapse;
@@ -508,7 +500,6 @@ export default function UNTLiveMapInner() {
           border-bottom: none;
         }
 
-        /* Distance badge */
         .leaflet-routing-alt td:last-child {
           text-align: right;
           white-space: nowrap;
@@ -518,14 +509,12 @@ export default function UNTLiveMapInner() {
           opacity: 0.85;
         }
 
-        /* Turn icons */
         .leaflet-routing-icon {
           filter: brightness(10);
           width: 18px;
           height: 18px;
         }
 
-        /* Collapse button */
         .leaflet-routing-collapse-btn {
           background: rgba(255,255,255,0.2) !important;
           border-radius: 6px !important;
