@@ -25,6 +25,7 @@ model User {
   searchHistory SearchHistory[]
   sentFriendRequests     Friend[] @relation("FriendSender")
   receivedFriendRequests Friend[] @relation("FriendReceiver")
+  classes       Class[]
 
   @@unique([email])
   @@map("user")
@@ -99,4 +100,15 @@ model Friend {
   @@unique([senderId, receiverId])
   @@index([receiverId, status])
   @@map("friend")
+}
+
+model Class {
+  id       String  @id @default(cuid())
+  name     String
+  location String
+  time     String?
+  userId   String
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("class")
 }
