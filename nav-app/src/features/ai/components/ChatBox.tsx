@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export default function ChatBox() {
   const [open, setOpen] = useState(false);
@@ -27,7 +27,6 @@ export default function ChatBox() {
 
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
-      {/* Chat Panel */}
       {open && (
         <div style={styles.container}>
           <h3 style={{ margin: "0 0 12px 0", color: "#00853E", fontSize: 16, fontWeight: 700 }}>
@@ -52,7 +51,6 @@ export default function ChatBox() {
         </div>
       )}
 
-      {/* Toggle Button */}
       <button
         onClick={() => setOpen((o) => !o)}
         className="bg-white px-4 py-2 rounded-xl shadow font-bold text-[#00853E] border border-gray-200"

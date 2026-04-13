@@ -1,6 +1,6 @@
 import { requireAuth } from "@/src/lib/auth-utils";
 import UNTLiveMap from "@/src/features/map/components/UNTLiveMap";
-import ChatBox from "@/src/features/ai/components/ChatBox";
+import ChatBoxWrapper from "@/src/features/ai/components/ChatBoxWrapper";
 
 export default async function HomePage() {
   await requireAuth();
@@ -8,7 +8,7 @@ export default async function HomePage() {
   return (
     <div className="w-screen h-screen overflow-hidden relative">
       <UNTLiveMap />
-      <ChatBox />
+      <ChatBoxWrapper />
     </div>
   );
 }
