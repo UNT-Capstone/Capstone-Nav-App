@@ -2,30 +2,37 @@
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { Form } from "@/components/ui/form";
-import { zodResolver } from "@hookform/resolvers/zod"
+import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { motion } from "framer-motion";
 import { authClient } from "@/src/lib/auth-client";
 import { toast } from "sonner";
 
-// defining the shape of the form 
-const signinSchema = z.object({
-  name: z.string().min(1, "Name cannot empty"),
-  email: z.email("Please enter a valid email address"),
-  password: z.string().min(1, "Password is required"),
-  confirmPassword: z.string(),
-})
-.refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"]
-});
+// Schema
+const signinSchema = z
+  .object({
+    name: z.string().min(1, "Name cannot be empty"),
+    email: z.email("Please enter a valid email address"),
+    password: z.string().min(1, "Password is required"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 type SigninFormValues = z.infer<typeof signinSchema>;
 
 export default function SignupForm() {
   const router = useRouter();
-  
+
   const form = useForm<SigninFormValues>({
     resolver: zodResolver(signinSchema),
     defaultValues: {
@@ -45,25 +52,31 @@ export default function SignupForm() {
         callbackURL: "/home",
       },
       {
-       onSuccess: () => {
-  // --- With email verification ---
-  toast.success("Account created! Please check your email to verify your account.");
-  router.push("/login");
-
-  // --- Without email verification (comment above, uncomment below) ---
-  // router.push("/home");
-},
+        onSuccess: () => {
+          toast.success(
+            "Account created! Please check your email to verify your account."
+          );
+          router.push("/login");
+        },
         onError: (ctx) => {
-          toast.error(ctx.error.message)
-        }
+          toast.error(ctx.error.message);
+        },
       }
     );
-  }
+  };
 
   const isPending = form.formState.isSubmitting;
-  
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-linear-to-b from-[#e6f4ec] to-[#c8e6d4] p-6">
+    <div
+      className="
+        flex flex-col items-center justify-center
+        min-h-screen
+        pt-[120px]
+        bg-linear-to-b from-[#e6f4ec] to-[#c8e6d4]
+        p-6
+      "
+    >
       <motion.div
         className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md text-center"
         initial={{ opacity: 0, y: 20 }}
@@ -71,17 +84,23 @@ export default function SignupForm() {
         transition={{ duration: 0.5 }}
       >
         <h1 className="text-3xl font-bold mb-3 text-[#00853E]">
-          Don't have an account?
+          Create Account
         </h1>
-        <p className="text-3l mb-6">Create an account to get started!</p>
+
+        <p className="text-sm mb-6">
+          Sign up to get started!
+        </p>
 
         <Form {...form}>
-          <form className="flex flex-col gap-4 w-full" onSubmit={form.handleSubmit(onSubmit)}>
+          <form
+            className="flex flex-col gap-4 w-full"
+            onSubmit={form.handleSubmit(onSubmit)}
+          >
             <div className="grid gap-6">
-              <FormField 
+              <FormField
                 control={form.control}
                 name="name"
-                render={({ field }) =>(
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Name</FormLabel>
                     <FormControl>
@@ -92,14 +111,15 @@ export default function SignupForm() {
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage/>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField 
+
+              <FormField
                 control={form.control}
                 name="email"
-                render={({ field }) =>(
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
@@ -110,14 +130,15 @@ export default function SignupForm() {
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage/>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField 
+
+              <FormField
                 control={form.control}
                 name="password"
-                render={({ field }) =>(
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
@@ -128,14 +149,15 @@ export default function SignupForm() {
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage/>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField 
+
+              <FormField
                 control={form.control}
                 name="confirmPassword"
-                render={({ field }) =>(
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Confirm Password</FormLabel>
                     <FormControl>
@@ -146,11 +168,12 @@ export default function SignupForm() {
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage/>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+
             <button
               type="submit"
               className="bg-[#00853E] text-white px-4 py-2 rounded hover:bg-[#007338] transition font-semibold"

@@ -252,7 +252,7 @@ export default function UNTLiveMapInner() {
   return (
     <div className="flex flex-col items-center justify-center h-screen w-screen">
       <div className="relative w-screen h-screen">
-        <UNTSearchBar onSelect={handleLocationSelect} />
+        {!showParking && <UNTSearchBar onSelect={handleLocationSelect} />}
 
         <LocationDetailsPanel
           location={selectedLocation}
