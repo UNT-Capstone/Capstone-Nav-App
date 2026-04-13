@@ -3,16 +3,10 @@
 import { useState, useEffect } from "react";
 
 export default function ChatBox() {
-  const [mounted, setMounted] = useState(false);
+  const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [reply, setReply] = useState("");
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
 
   async function sendMessage() {
     if (!message.trim()) return;
@@ -32,29 +26,39 @@ export default function ChatBox() {
   }
 
   return (
-    <div style={styles.container}>
-      <h3 style={{ margin: "0 0 12px 0", color: "#00853E", fontSize: 16, fontWeight: 700 }}>
-        🧭 Navi AI
-      </h3>
-
-      <input
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-        placeholder="Ask something about UNT..."
-        style={styles.input}
-      />
-
-      <button onClick={sendMessage} disabled={loading} style={styles.button}>
-        {loading ? "Thinking..." : "Send"}
-      </button>
-
-      {reply && (
-        <div style={styles.replyBox}>
-          <strong>Navi:</strong>
-          <p style={{ margin: "6px 0 0 0" }}>{reply}</p>
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
+      {/* Chat Panel */}
+      {open && (
+        <div style={styles.container}>
+          <h3 style={{ margin: "0 0 12px 0", color: "#00853E", fontSize: 16, fontWeight: 700 }}>
+            🧭 Navi AI
+          </h3>
+          <input
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+            placeholder="Ask something about UNT..."
+            style={styles.input}
+          />
+          <button onClick={sendMessage} disabled={loading} style={styles.button}>
+            {loading ? "Thinking..." : "Send"}
+          </button>
+          {reply && (
+            <div style={styles.replyBox}>
+              <strong>Navi:</strong>
+              <p style={{ margin: "6px 0 0 0" }}>{reply}</p>
+            </div>
+          )}
         </div>
       )}
+
+      {/* Toggle Button */}
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="bg-white px-4 py-2 rounded-xl shadow font-bold text-[#00853E] border border-gray-200"
+      >
+        {open ? "Hide Navi AI" : "Ask Navi AI 🧭"}
+      </button>
     </div>
   );
 }
