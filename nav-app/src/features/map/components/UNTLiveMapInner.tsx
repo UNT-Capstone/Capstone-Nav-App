@@ -34,7 +34,7 @@ export const FlyToMarker: React.FC<{
 
   useEffect(() => {
     if (map && position) {
-      const zoomLevel = isEvent ? 18 : 15; 
+      const zoomLevel = isEvent ? 16 : 15;
       map.flyTo(position, zoomLevel, { duration: 1.5 });
     }
   }, [position, map, isEvent]);
@@ -67,29 +67,36 @@ const Routing = ({
           showAlternatives: true,
           collapsible: true,
           show: true,
+
           lineOptions: {
             styles: [{ color: "#00853E", weight: 6 }],
           },
+
           altLineOptions: {
             styles: [{ color: "#999999", weight: 5, dashArray: "6,10" }],
           },
+
           createMarker: (_: number, wp: any) => L.marker(wp.latLng),
         }).addTo(map);
 
         const showOnlyRouteInstructions = (activeIndex: number) => {
           const container = control.getContainer();
           if (!container) return;
+
           let currentBlock = container.querySelector('.leaflet-routing-current-step') as HTMLElement;
           if (!currentBlock) {
             currentBlock = document.createElement('div');
             currentBlock.className = 'leaflet-routing-current-step';
             container.insertBefore(currentBlock, container.firstChild);
           }
+
           const altPanels = container.querySelectorAll(".leaflet-routing-alt");
           altPanels.forEach((panel: Element, i: number) => {
             const panelEl = panel as HTMLElement;
             const rows = panelEl.querySelectorAll("table tr");
+
             panelEl.style.display = i === activeIndex ? "flex" : "none";
+
             rows.forEach((row) => row.classList.remove("current-instruction"));
             if (i === activeIndex && rows.length > 0) {
               const firstRow = rows[0] as HTMLElement;
@@ -97,43 +104,62 @@ const Routing = ({
               currentBlock.innerText = firstRow.innerText.trim();
             }
           });
-          if (altPanels.length === 0) currentBlock.innerText = "";
+
+          if (altPanels.length === 0) {
+            currentBlock.innerText = "";
+          }
         };
 
         control.on("routesfound", (e: any) => {
           const routes = e.routes;
+
           setTimeout(() => {
             showOnlyRouteInstructions(0);
+
             const container = control.getContainer();
             if (!container) return;
+
             const altPanels = container.querySelectorAll(".leaflet-routing-alt");
             altPanels.forEach((panel: Element, i: number) => {
               const header = panel.querySelector("h3, h2");
               if (header) {
                 (header as HTMLElement).style.cursor = "pointer";
-                header.addEventListener("click", () => showOnlyRouteInstructions(i));
+                header.addEventListener("click", () => {
+                  showOnlyRouteInstructions(i);
+                });
               }
             });
           }, 150);
+
           control.on("routeselected", (ev: any) => {
-            const selectedIndex = routes.findIndex((r: any) => r === ev.route);
-            if (selectedIndex !== -1) showOnlyRouteInstructions(selectedIndex);
+            const selectedIndex = routes.findIndex(
+              (r: any) => r === ev.route
+            );
+            if (selectedIndex !== -1) {
+              showOnlyRouteInstructions(selectedIndex);
+            }
           });
         });
       } catch (err) {
         console.error("Routing Error:", err);
       }
     };
+
     loadRouting();
+
     return () => {
       if (control && map) {
-        try { map.removeControl(control); } catch {}
+        try {
+          map.removeControl(control);
+        } catch {}
       }
     };
   }, [start, end, map]);
+
   return null;
 };
 
+// --- Component: Debug Click Logic ---
 const ClickToGetCoords = () => {
   const map = useMap();
   useEffect(() => {
@@ -142,7 +168,9 @@ const ClickToGetCoords = () => {
       alert(`Latitude: ${lat.toFixed(6)}, Longitude: ${lng.toFixed(6)}`);
     };
     map.on("click", onClick);
-    return () => map.off("click", onClick);
+    return () => {
+      map.off("click", onClick);
+    };
   }, [map]);
   return null;
 };
@@ -157,7 +185,6 @@ export default function UNTLiveMapInner() {
   const [destination, setDestination] = useState<[number, number] | null>(null);
   const [showParking, setShowParking] = useState(false);
   const [isEventTarget, setIsEventTarget] = useState(false);
-  const [buildings, setBuildings] = useState<any[]>([]); 
   const [selectedLocation, setSelectedLocation] = useState<{
     name: string;
     lat: number;
@@ -169,18 +196,12 @@ export default function UNTLiveMapInner() {
     if (typeof window === "undefined") return;
     delete (L.Icon.Default.prototype as any)._getIconUrl;
     L.Icon.Default.mergeOptions({
-      iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+      iconRetinaUrl:
+        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
       iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-      shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      shadowUrl:
+        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
     });
-  }, []);
-
-  // Fetch Buildings
-  useEffect(() => {
-    fetch("/api/buildings")
-      .then(res => res.json())
-      .then(data => setBuildings(data))
-      .catch(err => console.error("Buildings Load Error:", err));
   }, []);
 
   // Geolocation Watcher
@@ -194,25 +215,16 @@ export default function UNTLiveMapInner() {
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
-  // Sync URL Params (Handles lat/lng OR location name)
+  // Sync URL Params
   useEffect(() => {
     const lat = searchParams.get("lat");
     const lng = searchParams.get("lng");
-    const locName = searchParams.get("location");
 
     if (lat && lng) {
       setDestination([parseFloat(lat), parseFloat(lng)]);
       setIsEventTarget(true);
-    } 
-    else if (locName && buildings.length > 0) {
-      const match = buildings.find(b => b.name.toLowerCase() === locName.toLowerCase());
-      if (match) {
-        setDestination([match.lat, match.lng]);
-        setIsEventTarget(true); 
-      }
     }
-    // Added all necessary dependencies to clear red lines
-  }, [searchParams, buildings]);
+  }, [searchParams]);
 
   // Reverse Geocode User Location
   useEffect(() => {
@@ -221,7 +233,11 @@ export default function UNTLiveMapInner() {
     getNearestLocation(lat, lng).then((name) => setNearestLocationName(name));
   }, [userPosition]);
 
-  const handleLocationSelect = (loc: { name: string; lat: number; lng: number; }) => {
+  const handleLocationSelect = (loc: {
+    name: string;
+    lat: number;
+    lng: number;
+  }) => {
     setSelectedLocation(loc);
   };
 
@@ -277,7 +293,7 @@ export default function UNTLiveMapInner() {
 
           {destination && (
             <Marker position={destination}>
-              <Popup>{searchParams.get("location") || searchParams.get("event") || "Destination"}</Popup>
+              <Popup>{searchParams.get("event") || "Destination"}</Popup>
             </Marker>
           )}
 
@@ -290,6 +306,7 @@ export default function UNTLiveMapInner() {
       </div>
 
       <style jsx global>{`
+        /* ── Desktop: mirror LocationDetailsPanel size ── */
         .leaflet-routing-container {
           background-color: #ffffff !important;
           color: #1f2937 !important;
@@ -320,6 +337,7 @@ export default function UNTLiveMapInner() {
           border: 1px solid #a7f3d0;
         }
 
+        /* ── Mobile: bottom sheet, full width, shorter height ── */
         @media (max-width: 640px) {
           .leaflet-routing-container {
             position: fixed !important;
@@ -422,6 +440,26 @@ export default function UNTLiveMapInner() {
           font-size: 13px;
           font-weight: 700;
           cursor: pointer;
+        }
+
+        .leaflet-routing-alt table {
+          width: 100%;
+          border-collapse: collapse;
+          min-height: 0;
+        }
+
+        .leaflet-routing-alt tbody {
+          display: block;
+        }
+
+        .leaflet-routing-alt tr {
+          display: table;
+          width: 100%;
+          table-layout: fixed;
+        }
+
+        .leaflet-routing-alt tr.current-instruction {
+          display: none;
         }
 
         .leaflet-routing-alt tr:not(.current-instruction) {
