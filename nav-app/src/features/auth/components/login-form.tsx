@@ -63,7 +63,7 @@ export default function LoginForm() {
     try {
       await authClient.requestPasswordReset({
         email: forgotEmail,
-        redirectTo: ""https://capstone-bice-psi.vercel.app/reset-password",
+        redirectTo: "https://capstone-bice-psi.vercel.app/reset-password",
       });
       setForgotStatus("sent");
     } catch (err: any) {
