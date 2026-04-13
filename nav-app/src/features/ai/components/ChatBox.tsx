@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 type Message = {
   role: "user" | "ai";
@@ -12,6 +12,11 @@ export default function ChatBox() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
   async function sendMessage() {
     if (!message.trim()) return;
@@ -34,19 +39,26 @@ export default function ChatBox() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-[9999] flex flex-col items-end gap-2">
+    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-3">
+      {/* Chat Panel */}
       {open && (
         <div style={styles.container}>
           {/* Header */}
-          <h3 style={{ margin: "0 0 10px 0", color: "#00853E", fontSize: 15, fontWeight: 700 }}>
-            🧭 Navi AI
-          </h3>
+          <div style={styles.header}>
+            <span style={{ fontSize: 15, fontWeight: 700 }}>🧭 Navi AI</span>
+            <button
+              onClick={() => setOpen(false)}
+              style={{ background: "none", border: "none", color: "#fff", fontSize: 18, cursor: "pointer", lineHeight: 1 }}
+            >
+              ✕
+            </button>
+          </div>
 
           {/* Messages */}
           <div style={styles.messagesBox}>
             {messages.length === 0 && (
               <p style={{ color: "#9ca3af", fontSize: 13, textAlign: "center", marginTop: 20 }}>
-                Ask me anything about UNT!
+                Ask me anything about UNT campus!
               </p>
             )}
             {messages.map((msg, i) => (
@@ -67,6 +79,7 @@ export default function ChatBox() {
                 Thinking...
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Input Row */}
@@ -77,21 +90,45 @@ export default function ChatBox() {
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
               placeholder="Ask something..."
               style={styles.input}
+              autoFocus
             />
-            <button onClick={sendMessage} disabled={loading} style={styles.button}>
-              Send
+            <button onClick={sendMessage} disabled={loading} style={styles.sendButton}>
+              ➤
             </button>
           </div>
         </div>
       )}
 
-      {/* Toggle Button */}
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="bg-white px-4 py-2 rounded-xl shadow font-bold text-[#00853E] border border-gray-200"
-      >
-        {open ? "Hide Navi AI" : "Ask Navi AI 🧭"}
-      </button>
+      {/* Floating Toggle Button */}
+      {!open && (
+        <div style={{ position: "relative" }}>
+          {/* Pulse ring */}
+          <span style={styles.pulse} />
+          <button
+            onClick={() => setOpen(true)}
+            style={styles.fab}
+          >
+            <span style={{ fontSize: 26 }}>🧭</span>
+            <span style={{ fontSize: 13, fontWeight: 700, marginTop: 2 }}>Navi AI</span>
+          </button>
+        </div>
+      )}
+
+      {open && (
+        <button
+          onClick={() => setOpen(false)}
+          style={styles.fab}
+        >
+          <span style={{ fontSize: 22 }}>✕</span>
+        </button>
+      )}
+
+      <style>{`
+        @keyframes pulse-ring {
+          0% { transform: scale(1); opacity: 0.6; }
+          100% { transform: scale(1.6); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -99,15 +136,23 @@ export default function ChatBox() {
 const styles: Record<string, React.CSSProperties> = {
   container: {
     width: 320,
-    maxHeight: 480,
+    maxHeight: 460,
     background: "#ffffff",
     border: "1px solid #e5e7eb",
-    borderRadius: 14,
-    boxShadow: "0 4px 24px rgba(0,0,0,0.15)",
-    padding: 16,
+    borderRadius: 16,
+    boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
     display: "flex",
     flexDirection: "column",
-    gap: 8,
+    overflow: "hidden",
+  },
+  header: {
+    background: "#00853E",
+    color: "#fff",
+    padding: "12px 16px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexShrink: 0,
   },
   messagesBox: {
     flex: 1,
@@ -115,9 +160,9 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     gap: 8,
-    maxHeight: 320,
+    maxHeight: 300,
     minHeight: 80,
-    paddingRight: 4,
+    padding: "12px 12px 4px 12px",
   },
   bubble: {
     padding: "8px 12px",
@@ -130,7 +175,9 @@ const styles: Record<string, React.CSSProperties> = {
   inputRow: {
     display: "flex",
     gap: 6,
-    marginTop: 4,
+    padding: "10px 12px",
+    borderTop: "1px solid #e5e7eb",
+    flexShrink: 0,
   },
   input: {
     flex: 1,
@@ -140,15 +187,41 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 13,
     outline: "none",
   },
-  button: {
+  sendButton: {
     padding: "8px 12px",
     background: "#00853E",
     color: "#fff",
     border: "none",
     borderRadius: 8,
     cursor: "pointer",
-    fontWeight: 600,
-    fontSize: 13,
-    whiteSpace: "nowrap",
+    fontWeight: 700,
+    fontSize: 16,
+  },
+  fab: {
+    width: 64,
+    height: 64,
+    borderRadius: "50%",
+    background: "#00853E",
+    color: "#fff",
+    border: "none",
+    cursor: "pointer",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 4px 16px rgba(0,133,62,0.5)",
+    position: "relative",
+    zIndex: 1,
+  },
+  pulse: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: 64,
+    height: 64,
+    borderRadius: "50%",
+    background: "#00853E",
+    animation: "pulse-ring 1.5s ease-out infinite",
+    zIndex: 0,
   },
 };
