@@ -1,231 +1,190 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { useEffect, useState, useRef } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMap,
+} from "react-leaflet";
 import L from "leaflet";
 import { useSearchParams } from "next/navigation";
 import UNTSearchBar from "./UNTSearchBar";
 import ParkingOverlay from "../../parking/components/ParkingOverlay";
 import LocationDetailsPanel from "./LocationDetailsPanel";
 
-// --- Helper: Reverse Geocoding ---
+// ---------------- Reverse Geocoding ----------------
 const getNearestLocation = async (lat: number, lng: number) => {
   try {
-    const response = await fetch(
+    const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
     );
-    const data = await response.json();
-    if (data.display_name) {
-      return data.display_name.split(",")[0];
-    }
-    return "Current Location";
-  } catch (err) {
-    console.error(err);
+    const data = await res.json();
+    return data?.display_name?.split(",")[0] || "Current Location";
+  } catch {
     return "Current Location";
   }
 };
 
-// --- Component: FlyTo Logic ---
-export const FlyToMarker: React.FC<{
-  position: [number, number] | null;
-  isEvent?: boolean;
-}> = ({ position, isEvent }) => {
+// ---------------- FlyTo ----------------
+const FlyToMarker = ({ position, isEvent }: any) => {
   const map = useMap();
 
   useEffect(() => {
     if (map && position) {
-      const zoomLevel = isEvent ? 16 : 15;
-      map.flyTo(position, zoomLevel, { duration: 1.5 });
+      map.flyTo(position, isEvent ? 16 : 15, {
+        duration: 1.5,
+      });
     }
   }, [position, map, isEvent]);
 
   return null;
 };
 
-// --- Component: Fit Bounds to Route ---
-const FitRouteBounds: React.FC<{
-  start: [number, number];
-  end: [number, number];
-}> = ({ start, end }) => {
+// ---------------- Fit Bounds (Improved zoom feel) ----------------
+const FitRouteBounds = ({ start, end }: any) => {
   const map = useMap();
 
   useEffect(() => {
     if (!start || !end) return;
-    const bounds = L.latLngBounds([L.latLng(start), L.latLng(end)]);
-    map.fitBounds(bounds, { padding: [60, 60], maxZoom: 17, duration: 1.5 });
+
+    const bounds = L.latLngBounds([start, end]);
+
+    map.fitBounds(bounds, {
+      padding: [120, 120],
+      maxZoom: 16,   // IMPORTANT: prevents ugly super-zoom
+      animate: true,
+    });
   }, [start, end, map]);
 
   return null;
 };
 
-// --- Component: Routing Engine ---
-const Routing = ({
-  start,
-  end,
-}: {
-  start: [number, number];
-  end: [number, number];
-}) => {
+// ---------------- Routing ----------------
+const ORSRouting = ({ start, end, setDirections }: any) => {
   const map = useMap();
+  const routeLayersRef = useRef<any[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
-    if (!start || !end || typeof window === "undefined") return;
+    if (!start || !end) return;
 
-    let control: any = null;
+    const fetchRoute = async () => {
+      const res = await fetch("/api/map", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          coordinates: [
+            [start[1], start[0]],
+            [end[1], end[0]],
+          ],
+        }),
+      });
 
-    const loadRouting = async () => {
-      try {
-        await import("leaflet-routing-machine");
+      const data = await res.json();
 
-        control = (L as any).Routing.control({
-          waypoints: [L.latLng(start[0], start[1]), L.latLng(end[0], end[1])],
-          routeWhileDragging: false,
-          showAlternatives: true,
-          collapsible: true,
-          show: true,
+      if (!data?.features?.length) return;
 
-          lineOptions: {
-            styles: [{ color: "#00853E", weight: 6 }],
+      // clear old routes
+      routeLayersRef.current.forEach((l) => map.removeLayer(l));
+      routeLayersRef.current = [];
+
+      const steps =
+        data.features[0]?.properties?.segments?.[0]?.steps || [];
+
+      setDirections(steps);
+
+      // draw routes (active green, others gray)
+      data.features.forEach((feature: any, index: number) => {
+        const layer = L.geoJSON(feature, {
+          style: {
+            color: index === activeIndex ? "#00853E" : "#9CA3AF",
+            weight: index === activeIndex ? 6 : 4,
+            opacity: index === activeIndex ? 1 : 0.5,
           },
-
-          altLineOptions: {
-            styles: [{ color: "#999999", weight: 5, dashArray: "6,10" }],
-          },
-
-          createMarker: (_: number, wp: any) => L.marker(wp.latLng),
         }).addTo(map);
 
-        const showOnlyRouteInstructions = (activeIndex: number) => {
-          const container = control.getContainer();
-          if (!container) return;
+        layer.on("click", () => {
+          setActiveIndex(index);
 
-          let currentBlock = container.querySelector(
-            ".leaflet-routing-current-step"
-          ) as HTMLElement;
-          if (!currentBlock) {
-            currentBlock = document.createElement("div");
-            currentBlock.className = "leaflet-routing-current-step";
-            container.insertBefore(currentBlock, container.firstChild);
-          }
+          const newSteps =
+            data.features[index]?.properties?.segments?.[0]?.steps || [];
 
-          const altPanels = container.querySelectorAll(".leaflet-routing-alt");
-          altPanels.forEach((panel: Element, i: number) => {
-            const panelEl = panel as HTMLElement;
-            const rows = panelEl.querySelectorAll("table tr");
+          setDirections(newSteps);
 
-            panelEl.style.display = i === activeIndex ? "flex" : "none";
-
-            rows.forEach((row) => row.classList.remove("current-instruction"));
-            if (i === activeIndex && rows.length > 0) {
-              const firstRow = rows[0] as HTMLElement;
-              firstRow.classList.add("current-instruction");
-              currentBlock.innerText = firstRow.innerText.trim();
-            }
-          });
-
-          if (altPanels.length === 0) {
-            currentBlock.innerText = "";
-          }
-        };
-
-        control.on("routesfound", (e: any) => {
-          const routes = e.routes;
-
-          setTimeout(() => {
-            showOnlyRouteInstructions(0);
-
-            const container = control.getContainer();
-            if (!container) return;
-
-            const altPanels = container.querySelectorAll(
-              ".leaflet-routing-alt"
-            );
-            altPanels.forEach((panel: Element, i: number) => {
-              const header = panel.querySelector("h3, h2");
-              if (header) {
-                (header as HTMLElement).style.cursor = "pointer";
-                header.addEventListener("click", () => {
-                  showOnlyRouteInstructions(i);
-                });
-              }
+          routeLayersRef.current.forEach((l, i) => {
+            l.setStyle({
+              color: i === index ? "#00853E" : "#9CA3AF",
+              weight: i === index ? 6 : 4,
+              opacity: i === index ? 1 : 0.5,
             });
-          }, 150);
-
-          control.on("routeselected", (ev: any) => {
-            const selectedIndex = routes.findIndex(
-              (r: any) => r === ev.route
-            );
-            if (selectedIndex !== -1) {
-              showOnlyRouteInstructions(selectedIndex);
-            }
           });
         });
-      } catch (err) {
-        console.error("Routing Error:", err);
-      }
+
+        routeLayersRef.current.push(layer);
+      });
+
+      map.fitBounds(L.geoJSON(data.features[0]).getBounds(), {
+        padding: [100, 100],
+        maxZoom: 16,
+        animate: true,
+      });
     };
 
-    loadRouting();
+    fetchRoute();
 
     return () => {
-      if (control && map) {
-        try {
-          map.removeControl(control);
-        } catch {}
-      }
+      routeLayersRef.current.forEach((l) => map.removeLayer(l));
     };
-  }, [start, end, map]);
+  }, [start, end]);
 
   return null;
 };
 
-// --- Main Component ---
+// ---------------- MAIN ----------------
 export default function UNTLiveMapInner() {
   const searchParams = useSearchParams();
+
   const defaultPosition: [number, number] = [33.2104, -97.1503];
 
-  const [userPosition, setUserPosition] = useState<[number, number] | null>(
-    null
-  );
+  const [userPosition, setUserPosition] = useState<any>(null);
+  const [destination, setDestination] = useState<any>(null);
   const [nearestLocationName, setNearestLocationName] =
-    useState<string>("Current Location");
-  const [destination, setDestination] = useState<[number, number] | null>(
-    null
-  );
+    useState("Current Location");
+
   const [showParking, setShowParking] = useState(false);
   const [isEventTarget, setIsEventTarget] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<{
-    name: string;
-    lat: number;
-    lng: number;
-  } | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<any>(null);
+  const [directions, setDirections] = useState<any[]>([]);
 
-  // Initialize Icons
+  const routeStart = userPosition ?? defaultPosition;
+
+  // fix leaflet icons
   useEffect(() => {
-    if (typeof window === "undefined") return;
     delete (L.Icon.Default.prototype as any)._getIconUrl;
     L.Icon.Default.mergeOptions({
       iconRetinaUrl:
         "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-      iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+      iconUrl:
+        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
       shadowUrl:
         "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
     });
   }, []);
 
-  // Geolocation Watcher
+  // GPS
   useEffect(() => {
     if (!navigator.geolocation) return;
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) =>
-        setUserPosition([pos.coords.latitude, pos.coords.longitude]),
-      () => {},
-      { enableHighAccuracy: true }
-    );
-    return () => navigator.geolocation.clearWatch(watchId);
+
+    const id = navigator.geolocation.watchPosition((pos) => {
+      setUserPosition([pos.coords.latitude, pos.coords.longitude]);
+    });
+
+    return () => navigator.geolocation.clearWatch(id);
   }, []);
 
-  // Sync URL Params
+  // URL params
   useEffect(() => {
     const lat = searchParams.get("lat");
     const lng = searchParams.get("lng");
@@ -236,323 +195,107 @@ export default function UNTLiveMapInner() {
     }
   }, [searchParams]);
 
-  // Reverse Geocode User Location
+  // reverse geocode
   useEffect(() => {
     if (!userPosition) return;
-    const [lat, lng] = userPosition;
-    getNearestLocation(lat, lng).then((name) =>
-      setNearestLocationName(name)
+
+    getNearestLocation(userPosition[0], userPosition[1]).then(
+      setNearestLocationName
     );
   }, [userPosition]);
 
-  const handleLocationSelect = (loc: {
-    name: string;
-    lat: number;
-    lng: number;
-  }) => {
-    setSelectedLocation(loc);
-  };
-
-  // FIX: use defaultPosition as fallback if GPS not available yet
   const handleGetDirections = () => {
-    if (selectedLocation) {
-      setIsEventTarget(false);
-      setDestination([selectedLocation.lat, selectedLocation.lng]);
-      setSelectedLocation(null);
-    }
-  };
+    if (!selectedLocation) return;
 
-  // Derive the routing start point (GPS if available, campus center otherwise)
-  const routeStart: [number, number] = userPosition ?? defaultPosition;
+    setDestination([selectedLocation.lat, selectedLocation.lng]);
+    setSelectedLocation(null);
+    setIsEventTarget(false);
+  };
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen w-screen">
-      <div className="relative w-screen h-screen">
-        {!showParking && <UNTSearchBar onSelect={handleLocationSelect} />}
+    <div className="h-screen w-screen relative">
 
-        <LocationDetailsPanel
-          location={selectedLocation}
-          onClose={() => setSelectedLocation(null)}
-          onDirections={handleGetDirections}
-        />
+      {!showParking && (
+        <UNTSearchBar onSelect={setSelectedLocation} />
+      )}
 
-        <button
-          onClick={() => setShowParking((p) => !p)}
-          className="absolute z-[999] top-20 md:top-32 left-4 md:left-16 bg-white px-4 py-2 rounded-xl shadow font-bold text-[#00853E]"
-        >
-          {showParking ? "Hide Parking" : "Show Parking"}
-        </button>
+      <LocationDetailsPanel
+        location={selectedLocation}
+        onClose={() => setSelectedLocation(null)}
+        onDirections={handleGetDirections}
+      />
 
-        <MapContainer
-          center={defaultPosition}
-          zoom={16}
-          scrollWheelZoom
-          style={{ width: "100%", height: "100vh" }}
-        >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution="&copy; OpenStreetMap contributors"
+      <MapContainer
+        center={defaultPosition}
+        zoom={15}
+        minZoom={13}
+        maxZoom={18}
+        zoomSnap={0.5}
+        zoomDelta={0.5}
+        wheelPxPerZoomLevel={120}
+        style={{ height: "100%", width: "100%" }}
+      >
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+        {destination ? (
+          <FitRouteBounds start={routeStart} end={destination} />
+        ) : (
+          <FlyToMarker position={userPosition} isEvent={isEventTarget} />
+        )}
+
+        {userPosition && (
+          <Marker position={userPosition}>
+            <Popup>You are here ({nearestLocationName})</Popup>
+          </Marker>
+        )}
+
+        {destination && (
+          <Marker position={destination}>
+            <Popup>Destination</Popup>
+          </Marker>
+        )}
+
+        {destination && (
+          <ORSRouting
+            start={routeStart}
+            end={destination}
+            setDirections={setDirections}
           />
+        )}
 
-          {/* FIX: removed ClickToGetCoords — debug tool that blocked routing panel clicks */}
+        {showParking && <ParkingOverlay />}
+      </MapContainer>
 
-          {/* Fly to destination when directions are requested, fits both points in view */}
-          {destination ? (
-            <FitRouteBounds start={routeStart} end={destination} />
-          ) : (
-            <FlyToMarker
-              position={userPosition}
-              isEvent={isEventTarget}
-            />
-          )}
+      {/* ONLY SHOW AFTER DESTINATION SELECTED */}
+      {destination && directions.length > 0 && (
+        <div className="absolute top-20 right-4 w-80 max-h-[70vh] bg-white shadow-2xl rounded-xl z-[9999] flex flex-col">
+          
+          <div className="bg-[#00853E] text-white p-3 font-bold">
+            Directions
+          </div>
 
-          {userPosition && (
-            <Marker position={userPosition}>
-              <Popup>You (at {nearestLocationName})</Popup>
-            </Marker>
-          )}
+          <div className="overflow-y-auto p-3 space-y-3 text-sm">
+            {directions.map((step, i) => (
+              <div key={i} className="p-2 hover:bg-gray-100 rounded">
+                <div>
+                  {i + 1}. {step.instruction}
+                </div>
 
-          {destination && (
-            <Marker position={destination}>
-              <Popup>{searchParams.get("event") || "Destination"}</Popup>
-            </Marker>
-          )}
+                <div className="text-gray-500 text-xs">
+                  {Math.round(step.distance)} m
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-          {/* FIX: render Routing whenever destination is set, regardless of GPS.
-              Falls back to defaultPosition (campus center) if no GPS lock yet. */}
-          {destination && !showParking && (
-            <Routing start={routeStart} end={destination} />
-          )}
-
-          {showParking && <ParkingOverlay />}
-        </MapContainer>
-      </div>
-
-      <style jsx global>{`
-        /* ── Desktop: mirror LocationDetailsPanel size ── */
-        .leaflet-routing-container {
-          background-color: #ffffff !important;
-          color: #1f2937 !important;
-          font-family: sans-serif;
-          border-radius: 14px;
-          padding: 14px 16px;
-          position: fixed !important;
-          top: 9rem !important;
-          right: 0 !important;
-          width: 18rem !important;
-          height: calc(80vh - 8rem) !important;
-          max-width: 18rem !important;
-          max-height: calc(80vh - 8rem) !important;
-          overflow: hidden;
-          display: flex !important;
-          flex-direction: column;
-          border: 1px solid #e5e7eb;
-          box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
-        }
-        .leaflet-routing-container h2 {
-          background: #ecfdf5 !important;
-          color: #065f46 !important;
-          padding: 8px 10px !important;
-          border-radius: 8px;
-          margin-bottom: 8px !important;
-          font-size: 14px !important;
-          font-weight: 700 !important;
-          border: 1px solid #a7f3d0;
-        }
-
-        /* ── Mobile: bottom sheet, full width, shorter height ── */
-        @media (max-width: 640px) {
-          .leaflet-routing-container {
-            position: fixed !important;
-            bottom: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            top: auto !important;
-            width: 100vw !important;
-            max-width: 100vw !important;
-            max-height: 35vh !important;
-            border-radius: 16px 16px 0 0 !important;
-            padding: 12px 16px !important;
-            z-index: 1000 !important;
-          }
-        }
-
-        .leaflet-routing-container > h2 {
-          font-size: 14px !important;
-          font-weight: 700;
-          margin: 0 0 8px 0 !important;
-          padding: 8px 10px !important;
-          border: 1px solid #d1fae5;
-          border-radius: 8px;
-          background: #ecfdf5;
-          color: #065f46;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          flex-shrink: 0;
-        }
-
-        .leaflet-routing-alt {
-          display: none !important;
-          flex: 1 !important;
-          min-height: 0 !important;
-          overflow: hidden !important;
-          display: flex !important;
-          flex-direction: column !important;
-          background: #f8fafc !important;
-          border-radius: 10px !important;
-          border: 1px solid #dbeafe !important;
-          padding: 4px !important;
-        }
-
-        .leaflet-routing-current-step {
-          flex: none;
-          width: 100%;
-          display: block;
-          background: #00853e;
-          color: #ffffff;
-          font-weight: 600;
-          border: none;
-          border-radius: 8px;
-          margin-bottom: 8px;
-          padding: 10px 14px;
-          font-size: 14px;
-          line-height: 1.5;
-          text-align: center;
-          box-shadow: none;
-        }
-
-        .leaflet-routing-alt table {
-          width: 100% !important;
-          height: calc(100% - 72px) !important;
-          min-height: 0 !important;
-          max-height: calc(100% - 72px) !important;
-          overflow-y: auto !important;
-          display: block !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          border-collapse: collapse !important;
-        }
-
-        .leaflet-routing-alt tbody {
-          display: block !important;
-          width: 100% !important;
-        }
-
-        .leaflet-routing-alt tr {
-          display: table !important;
-          width: 100% !important;
-          table-layout: fixed !important;
-        }
-
-        .leaflet-routing-alt tr.current-instruction {
-          display: none !important;
-        }
-
-        .leaflet-routing-alt h2,
-        .leaflet-routing-alt h3 {
-          position: sticky;
-          top: 0;
-          z-index: 2;
-          margin: 0 0 8px 0;
-          padding: 8px 10px;
-          background: #ecfdf5;
-          color: #065f46;
-          border: 1px solid #a7f3d0;
-          border-radius: 8px;
-          font-size: 13px;
-          font-weight: 700;
-          cursor: pointer;
-        }
-
-        .leaflet-routing-alt table {
-          width: 100%;
-          border-collapse: collapse;
-          min-height: 0;
-        }
-
-        .leaflet-routing-alt tbody {
-          display: block;
-        }
-
-        .leaflet-routing-alt tr {
-          display: table;
-          width: 100%;
-          table-layout: fixed;
-        }
-
-        .leaflet-routing-alt tr.current-instruction {
-          display: none;
-        }
-
-        .leaflet-routing-alt tr:not(.current-instruction) {
-          background: #ffffff;
-        }
-
-        .leaflet-routing-alt tr:hover {
-          background: #d9f7ef;
-        }
-        .leaflet-routing-alt::-webkit-scrollbar {
-          width: 5px;
-        }
-        .leaflet-routing-alt::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.4);
-          border-radius: 4px;
-        }
-
-        .leaflet-routing-alt table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-        .leaflet-routing-alt td {
-          padding: 6px 4px;
-          font-size: 13px;
-          line-height: 1.45;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-          vertical-align: middle;
-        }
-
-        @media (max-width: 640px) {
-          .leaflet-routing-alt td {
-            font-size: 12px;
-            padding: 5px 4px;
-          }
-        }
-
-        .leaflet-routing-alt tr:last-child td {
-          border-bottom: none;
-        }
-
-        .leaflet-routing-alt td:last-child {
-          text-align: right;
-          white-space: nowrap;
-          padding-left: 10px;
-          font-weight: 600;
-          font-size: 12px;
-          opacity: 0.85;
-        }
-
-        .leaflet-routing-icon {
-          filter: brightness(10);
-          width: 18px;
-          height: 18px;
-        }
-
-        .leaflet-routing-collapse-btn {
-          background: rgba(255, 255, 255, 0.2) !important;
-          border-radius: 6px !important;
-          color: white !important;
-          font-size: 12px !important;
-          padding: 2px 8px !important;
-          border: none !important;
-          cursor: pointer !important;
-          margin-top: 6px;
-          flex-shrink: 0;
-        }
-        .leaflet-routing-collapse-btn:hover {
-          background: rgba(255, 255, 255, 0.35) !important;
-        }
-      `}</style>
+      <button
+        onClick={() => setShowParking(!showParking)}
+        className="absolute top-20 left-4 bg-white px-4 py-2 rounded-xl shadow z-[999]"
+      >
+        {showParking ? "Hide Parking" : "Show Parking"}
+      </button>
     </div>
   );
 }
