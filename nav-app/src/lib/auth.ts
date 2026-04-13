@@ -29,7 +29,7 @@ cleanupUnverifiedUsers();
 // Run cleanup every 5 minutes
 setInterval(cleanupUnverifiedUsers, 5 * 60 * 1000);
 
-xport const auth = betterAuth({
+export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
   trustedOrigins: [process.env.BETTER_AUTH_URL!],
   database: prismaAdapter(prisma, { provider: "postgresql" }),
