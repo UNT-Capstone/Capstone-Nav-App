@@ -20,6 +20,7 @@ export default function LocationDetailsPanel({
 }: LocationDetailsPanelProps) {
   const [isAddedToFavorites, setIsAddedToFavorites] = useState(false);
 
+  // If no location selected
   if (!location) return null;
 
   return (
@@ -27,13 +28,14 @@ export default function LocationDetailsPanel({
       className="
         fixed left-2 top-24
         w-[90vw] max-w-sm
-        h-[75vh]
+        max-h-[calc(100vh-6rem)]
         bg-white shadow-2xl
         z-50 flex flex-col
         rounded-lg
+        overflow-hidden
       "
     >
-      {/* Header */}
+      {/* HEADER */}
       <div className="flex items-center justify-between p-4 border-b">
         <h2 className="text-lg font-bold text-gray-800">
           Location Details
@@ -48,19 +50,18 @@ export default function LocationDetailsPanel({
         </button>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4">
-        {/* Location Name */}
+      {/* CONTENT */}
+      <div className="flex-1 overflow-y-auto p-4">
         <h3 className="text-lg font-semibold text-gray-800 mb-3">
           {location.name}
         </h3>
 
-        {/* Coordinates */}
         <div className="bg-gray-50 rounded-lg p-3 mb-4">
           <p className="text-sm text-gray-600 mb-1">
             <span className="font-medium">Latitude:</span>{" "}
             {location.lat.toFixed(4)}
           </p>
+
           <p className="text-sm text-gray-600">
             <span className="font-medium">Longitude:</span>{" "}
             {location.lng.toFixed(4)}
@@ -68,8 +69,8 @@ export default function LocationDetailsPanel({
         </div>
       </div>
 
-      {/* Buttons */}
-      <div className="border-t p-4 space-y-2">
+      {/* BUTTONS (always visible) */}
+      <div className="border-t p-4 space-y-2 shrink-0 bg-white">
         {/* Directions */}
         <button
           onClick={onDirections}
@@ -81,7 +82,7 @@ export default function LocationDetailsPanel({
 
         {/* Favorites */}
         <button
-          onClick={() => setIsAddedToFavorites(!isAddedToFavorites)}
+          onClick={() => setIsAddedToFavorites((prev) => !prev)}
           className={`w-full font-semibold py-2 rounded-lg transition flex items-center justify-center gap-2 ${
             isAddedToFavorites
               ? "bg-red-100 text-red-600 hover:bg-red-200"
@@ -95,7 +96,7 @@ export default function LocationDetailsPanel({
           {isAddedToFavorites ? "Saved" : "Add to Favorites"}
         </button>
 
-        {/* Create Event */}
+        {/* Event */}
         <button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 rounded-lg transition flex items-center justify-center gap-2">
           <Calendar size={18} />
           Create Event
