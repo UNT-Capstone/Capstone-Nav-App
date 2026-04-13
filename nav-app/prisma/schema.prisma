@@ -14,21 +14,19 @@ datasource db {
 
 // --- USER MODEL ---
 model User {
-  id                  String          @id
-  name                String
-  email               String
-  emailVerified       Boolean         @default(false)
-  image               String?
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @default(now()) @updatedAt
-  
-  // Relations
-  sessions            Session[]
-  accounts            Account[]
-  searchHistory       SearchHistory[]
-  sentFriendRequests  Friend[]        @relation("FriendSender")
-  receivedFriendRequests Friend[]     @relation("FriendReceiver")
-  classes             Class[]         // Added relation for the Schedule feature
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  searchHistory SearchHistory[]
+  sentFriendRequests     Friend[] @relation("FriendSender")
+  receivedFriendRequests Friend[] @relation("FriendReceiver")
+  classes       Class[]
 
   @@unique([email])
   @@map("user")
