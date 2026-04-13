@@ -5,13 +5,16 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Cleanup function: deletes unverified users older than 3 minutes
+/**
+ * Cleanup function: deletes unverified users older than 15 minutes.
+ * 3 minutes was too short for reliable email delivery and user action.
+ */
 async function cleanupUnverifiedUsers() {
-  const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
+  const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
   const deleted = await prisma.user.deleteMany({
     where: {
-      emailVerified: false, // Boolean field in your schema
-      createdAt: { lt: threeMinutesAgo },
+      emailVerified: false, 
+      createdAt: { lt: fifteenMinutesAgo },
     },
   });
 
@@ -23,19 +26,20 @@ async function cleanupUnverifiedUsers() {
 // Run cleanup at server startup
 cleanupUnverifiedUsers();
 
-// Run cleanup every minute
-setInterval(cleanupUnverifiedUsers, 60 * 1000);
+// Run cleanup every 5 minutes
+setInterval(cleanupUnverifiedUsers, 5 * 60 * 1000);
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "postgresql" }),
 
   emailAndPassword: {
     enabled: true,
-    autoSignIn: false, // requires verification
+    autoSignIn: false, 
     requireEmailVerification: true,
     sendResetPassword: async ({ user, url }) => {
       await resend.emails.send({
-        from: "UNT Navigator <noreply@untnavigation.me>",
+        // CRITICAL: Must use onboarding@resend.dev until your domain is verified in Resend dashboard
+        from: "UNT Navigator <onboarding@resend.dev>",
         to: user.email,
         subject: "Reset your password",
         html: `
@@ -59,11 +63,12 @@ export const auth = betterAuth({
   emailVerification: {
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
-    deleteUnverifiedUsers: true, // keeps adapter fallback
-    deleteUnverifiedUsersAfter: 60 * 3, // 3 minutes
+    deleteUnverifiedUsers: true, 
+    deleteUnverifiedUsersAfter: 60 * 15, // Increased to 15 minutes
     sendVerificationEmail: async ({ user, url }) => {
       await resend.emails.send({
-        from: "UNT Navigator <noreply@untnavigation.me>",
+        // CRITICAL: Must use onboarding@resend.dev until your domain is verified in Resend dashboard
+        from: "UNT Navigator <onboarding@resend.dev>",
         to: user.email,
         subject: "Welcome to UNT Navigator! Verify your email",
         html: `
@@ -71,7 +76,7 @@ export const auth = betterAuth({
             <h2 style="color: #00853E;">Welcome to UNT Navigator! 🎉</h2>
             <p>Hi ${user.name || "there"},</p>
             <p>Thanks for signing up! Please verify your email address to get started.</p>
-            <p>⚠️ This link expires in <strong>3 minutes</strong>. If it expires, simply sign up again.</p>
+            <p>⚠️ This link expires in <strong>15 minutes</strong>.</p>
             <a href="${url}" style="display:inline-block; margin-top:16px; padding:12px 24px;
               background:#00853E; color:white; border-radius:8px;
               text-decoration:none; font-weight:bold;">

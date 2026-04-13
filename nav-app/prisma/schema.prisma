@@ -12,24 +12,29 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// --- USER MODEL ---
 model User {
-  id            String    @id
-  name          String
-  email         String
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @default(now()) @updatedAt
-  sessions      Session[]
-  accounts      Account[]
-  searchHistory SearchHistory[]
-  sentFriendRequests     Friend[] @relation("FriendSender")
-  receivedFriendRequests Friend[] @relation("FriendReceiver")
+  id                  String          @id
+  name                String
+  email               String
+  emailVerified       Boolean         @default(false)
+  image               String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @default(now()) @updatedAt
+  
+  // Relations
+  sessions            Session[]
+  accounts            Account[]
+  searchHistory       SearchHistory[]
+  sentFriendRequests  Friend[]        @relation("FriendSender")
+  receivedFriendRequests Friend[]     @relation("FriendReceiver")
+  classes             Class[]         // Added relation for the Schedule feature
 
   @@unique([email])
   @@map("user")
 }
 
+// --- AUTH & SESSION MODELS ---
 model Session {
   id        String   @id
   expiresAt DateTime
@@ -75,6 +80,7 @@ model Verification {
   @@map("verification")
 }
 
+// --- SEARCH & SOCIAL MODELS ---
 model SearchHistory {
   id        String   @id @default(cuid())
   query     String
@@ -99,4 +105,18 @@ model Friend {
   @@unique([senderId, receiverId])
   @@index([receiverId, status])
   @@map("friend")
+}
+
+// --- SCHEDULE MODEL ---
+model Class {
+  id        String   @id @default(cuid())
+  name      String
+  location  String
+  time      String?  // Made optional to match your previous code
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("class")
 }

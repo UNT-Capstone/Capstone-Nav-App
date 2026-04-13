@@ -2,6 +2,10 @@ import React from "react";
 import { requireAuth } from "@/src/lib/auth-utils";
 import prisma from "@/src/lib/prisma";
 
+// 1. FORCE DYNAMIC: Ensures fresh data on every visit
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const getInitials = (name: string) => {
   return name
     .split(" ")
@@ -13,8 +17,7 @@ const getInitials = (name: string) => {
 
 const timeAgo = (date: Date) => {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-
-  const intervals: any = {
+  const intervals: Record<string, number> = {
     year: 31536000,
     month: 2592000,
     day: 86400,
@@ -28,107 +31,103 @@ const timeAgo = (date: Date) => {
       return `${value} ${key}${value > 1 ? "s" : ""} ago`;
     }
   }
-
   return "Just now";
 };
 
 const ProfilePage = async () => {
+  // 2. AUTH CHECK: requireAuth is a dynamic function (checks cookies)
   const session = await requireAuth();
   const userEmail = session?.user?.email;
 
-  let user = null;
+  if (!userEmail) return <div className="p-10 text-center">Unauthorized</div>;
 
-  if (userEmail) {
-    user = await prisma.user.findUnique({
-      where: { email: userEmail },
-      include: {
-        searchHistory: {
-          orderBy: { createdAt: "desc" },
-          take: 5,
-        },
+  // 3. OPTIMIZED QUERY: Only fetch what we need
+  const user = await prisma.user.findUnique({
+    where: { email: userEmail },
+    select: {
+      name: true,
+      email: true,
+      image: true,
+      searchHistory: {
+        orderBy: { createdAt: "desc" },
+        take: 5,
       },
-    });
-  }
+    },
+  });
 
   if (!user) {
-    return <div>User not found</div>;
+    return (
+      <div className="flex justify-center items-center h-screen text-white bg-[#00853E]">
+        User data not found in database.
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col items-center min-h-screen bg-gradient-to-b from-[#00853E] to-[#00A651] py-10">
+    <main className="min-h-screen bg-[#f8fafc] flex flex-col items-center">
+      {/* HEADER SECTION */}
+      <div className="w-full bg-[#00853E] pt-32 pb-20 px-6 flex flex-col items-center text-center">
+        <h1 className="text-5xl font-black text-white tracking-tighter mb-2">
+          Student Profile
+        </h1>
+        <p className="text-green-100 font-medium">UNT Campus Navigator</p>
+      </div>
 
-      <h1 className="text-3xl font-bold text-white mb-2">My Profile</h1>
-      <p className="mb-8 text-green-100">
-        Manage your account and view activity.
-      </p>
-
-      <div className="w-full max-w-4xl px-4 space-y-6">
-
-        {/* PROFILE HEADER */}
-        <div className="bg-white shadow-lg rounded-xl p-6 flex items-center space-x-6">
-
-          <div className="w-24 h-24 rounded-full bg-[#00853E] flex items-center justify-center text-white text-3xl font-bold">
+      <div className="w-full max-w-2xl px-6 -mt-12 space-y-6 pb-20">
+        
+        {/* PROFILE CARD */}
+        <div className="bg-white shadow-sm border border-gray-100 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center gap-8">
+          <div className="w-32 h-32 rounded-3xl bg-[#00853E]/10 flex items-center justify-center text-[#00853E] text-4xl font-black overflow-hidden border-4 border-white shadow-lg">
             {user.image ? (
-              <img
-                src={user.image}
-                className="w-full h-full rounded-full object-cover"
-              />
+              <img src={user.image} alt={user.name || ""} className="w-full h-full object-cover" />
             ) : (
               getInitials(user.name || "User")
             )}
           </div>
 
-          <div className="w-full">
-            <ul className="space-y-2">
-
-              <li className="flex justify-between border-b pb-2">
-                <span className="font-medium text-gray-600">Name:</span>
-                <span className="text-gray-800 font-semibold">
-                  {user.name}
-                </span>
-              </li>
-
-              <li className="flex justify-between border-b pb-2">
-                <span className="font-medium text-gray-600">Email:</span>
-                <span className="text-gray-800">{user.email}</span>
-              </li>
-
-            </ul>
+          <div className="flex-1 w-full space-y-4">
+            <div className="border-b border-gray-50 pb-2">
+              <label className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">Full Name</label>
+              <p className="text-xl font-bold text-gray-900">{user.name}</p>
+            </div>
+            <div>
+              <label className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">University Email</label>
+              <p className="text-lg font-semibold text-gray-600">{user.email}</p>
+            </div>
           </div>
         </div>
 
-        {/* RECENT ACTIVITY */}
-        <div className="bg-white shadow-lg rounded-xl p-6">
-          <h3 className="text-xl font-semibold text-[#00853E] mb-4">
-            Recent Activity
-          </h3>
+        {/* RECENT SEARCH ACTIVITY */}
+        <div className="bg-white shadow-sm border border-gray-100 rounded-[2.5rem] p-8">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-black text-gray-900">Recent Search Activity</h3>
+            <span className="bg-[#00853E]/10 text-[#00853E] text-xs font-bold px-3 py-1 rounded-full">Last 5 searches</span>
+          </div>
 
           {user.searchHistory.length === 0 ? (
-            <p className="text-gray-500">No activity yet</p>
+            <div className="text-center py-10 border-2 border-dashed border-gray-50 rounded-3xl">
+              <p className="text-gray-400 font-bold">No recent searches found.</p>
+            </div>
           ) : (
             <ul className="space-y-4">
               {user.searchHistory.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex items-start space-x-3 border-b pb-3 last:border-0"
-                >
-                  <div className="w-2 h-2 mt-2 rounded-full bg-[#00853E]" />
-                  <div>
-                    <p className="text-gray-800 font-medium">
-                      Searched for "{item.query}"
-                    </p>
-                    <span className="text-xs text-gray-500">
-                      {timeAgo(item.createdAt)}
-                    </span>
+                <li key={item.id} className="flex items-center justify-between p-4 rounded-2xl bg-gray-50/50 hover:bg-gray-50 transition-colors group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-2 h-2 rounded-full bg-[#00853E]" />
+                    <div>
+                      <p className="text-gray-800 font-bold tracking-tight">"{item.query}"</p>
+                      <span className="text-[10px] text-gray-400 uppercase font-black tracking-tighter">
+                        {timeAgo(item.createdAt)}
+                      </span>
+                    </div>
                   </div>
                 </li>
               ))}
             </ul>
           )}
         </div>
-
       </div>
-    </div>
+    </main>
   );
 };
 
