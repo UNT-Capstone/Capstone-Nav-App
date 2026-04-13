@@ -42,6 +42,22 @@ export const FlyToMarker: React.FC<{
   return null;
 };
 
+// --- Component: Fit Bounds to Route ---
+const FitRouteBounds: React.FC<{
+  start: [number, number];
+  end: [number, number];
+}> = ({ start, end }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!start || !end) return;
+    const bounds = L.latLngBounds([L.latLng(start), L.latLng(end)]);
+    map.fitBounds(bounds, { padding: [60, 60], maxZoom: 17, duration: 1.5 });
+  }, [start, end, map]);
+
+  return null;
+};
+
 // --- Component: Routing Engine ---
 const Routing = ({
   start,
@@ -83,10 +99,12 @@ const Routing = ({
           const container = control.getContainer();
           if (!container) return;
 
-          let currentBlock = container.querySelector('.leaflet-routing-current-step') as HTMLElement;
+          let currentBlock = container.querySelector(
+            ".leaflet-routing-current-step"
+          ) as HTMLElement;
           if (!currentBlock) {
-            currentBlock = document.createElement('div');
-            currentBlock.className = 'leaflet-routing-current-step';
+            currentBlock = document.createElement("div");
+            currentBlock.className = "leaflet-routing-current-step";
             container.insertBefore(currentBlock, container.firstChild);
           }
 
@@ -119,7 +137,9 @@ const Routing = ({
             const container = control.getContainer();
             if (!container) return;
 
-            const altPanels = container.querySelectorAll(".leaflet-routing-alt");
+            const altPanels = container.querySelectorAll(
+              ".leaflet-routing-alt"
+            );
             altPanels.forEach((panel: Element, i: number) => {
               const header = panel.querySelector("h3, h2");
               if (header) {
@@ -159,30 +179,19 @@ const Routing = ({
   return null;
 };
 
-// --- Component: Debug Click Logic ---
-const ClickToGetCoords = () => {
-  const map = useMap();
-  useEffect(() => {
-    const onClick = (e: any) => {
-      const { lat, lng } = e.latlng;
-      alert(`Latitude: ${lat.toFixed(6)}, Longitude: ${lng.toFixed(6)}`);
-    };
-    map.on("click", onClick);
-    return () => {
-      map.off("click", onClick);
-    };
-  }, [map]);
-  return null;
-};
-
 // --- Main Component ---
 export default function UNTLiveMapInner() {
   const searchParams = useSearchParams();
   const defaultPosition: [number, number] = [33.2104, -97.1503];
 
-  const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
-  const [nearestLocationName, setNearestLocationName] = useState<string>("Current Location");
-  const [destination, setDestination] = useState<[number, number] | null>(null);
+  const [userPosition, setUserPosition] = useState<[number, number] | null>(
+    null
+  );
+  const [nearestLocationName, setNearestLocationName] =
+    useState<string>("Current Location");
+  const [destination, setDestination] = useState<[number, number] | null>(
+    null
+  );
   const [showParking, setShowParking] = useState(false);
   const [isEventTarget, setIsEventTarget] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<{
@@ -208,7 +217,8 @@ export default function UNTLiveMapInner() {
   useEffect(() => {
     if (!navigator.geolocation) return;
     const watchId = navigator.geolocation.watchPosition(
-      (pos) => setUserPosition([pos.coords.latitude, pos.coords.longitude]),
+      (pos) =>
+        setUserPosition([pos.coords.latitude, pos.coords.longitude]),
       () => {},
       { enableHighAccuracy: true }
     );
@@ -230,7 +240,9 @@ export default function UNTLiveMapInner() {
   useEffect(() => {
     if (!userPosition) return;
     const [lat, lng] = userPosition;
-    getNearestLocation(lat, lng).then((name) => setNearestLocationName(name));
+    getNearestLocation(lat, lng).then((name) =>
+      setNearestLocationName(name)
+    );
   }, [userPosition]);
 
   const handleLocationSelect = (loc: {
@@ -241,6 +253,7 @@ export default function UNTLiveMapInner() {
     setSelectedLocation(loc);
   };
 
+  // FIX: use defaultPosition as fallback if GPS not available yet
   const handleGetDirections = () => {
     if (selectedLocation) {
       setIsEventTarget(false);
@@ -248,6 +261,9 @@ export default function UNTLiveMapInner() {
       setSelectedLocation(null);
     }
   };
+
+  // Derive the routing start point (GPS if available, campus center otherwise)
+  const routeStart: [number, number] = userPosition ?? defaultPosition;
 
   return (
     <div className="flex flex-col items-center justify-center h-screen w-screen">
@@ -278,12 +294,17 @@ export default function UNTLiveMapInner() {
             attribution="&copy; OpenStreetMap contributors"
           />
 
-          {!showParking && <ClickToGetCoords />}
+          {/* FIX: removed ClickToGetCoords — debug tool that blocked routing panel clicks */}
 
-          <FlyToMarker
-            position={destination || userPosition}
-            isEvent={isEventTarget}
-          />
+          {/* Fly to destination when directions are requested, fits both points in view */}
+          {destination ? (
+            <FitRouteBounds start={routeStart} end={destination} />
+          ) : (
+            <FlyToMarker
+              position={userPosition}
+              isEvent={isEventTarget}
+            />
+          )}
 
           {userPosition && (
             <Marker position={userPosition}>
@@ -297,8 +318,10 @@ export default function UNTLiveMapInner() {
             </Marker>
           )}
 
-          {userPosition && destination && !showParking && (
-            <Routing start={userPosition} end={destination} />
+          {/* FIX: render Routing whenever destination is set, regardless of GPS.
+              Falls back to defaultPosition (campus center) if no GPS lock yet. */}
+          {destination && !showParking && (
+            <Routing start={routeStart} end={destination} />
           )}
 
           {showParking && <ParkingOverlay />}
@@ -473,7 +496,7 @@ export default function UNTLiveMapInner() {
           width: 5px;
         }
         .leaflet-routing-alt::-webkit-scrollbar-thumb {
-          background: rgba(255,255,255,0.4);
+          background: rgba(255, 255, 255, 0.4);
           border-radius: 4px;
         }
 
@@ -485,7 +508,7 @@ export default function UNTLiveMapInner() {
           padding: 6px 4px;
           font-size: 13px;
           line-height: 1.45;
-          border-bottom: 1px solid rgba(255,255,255,0.1);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
           vertical-align: middle;
         }
 
@@ -516,7 +539,7 @@ export default function UNTLiveMapInner() {
         }
 
         .leaflet-routing-collapse-btn {
-          background: rgba(255,255,255,0.2) !important;
+          background: rgba(255, 255, 255, 0.2) !important;
           border-radius: 6px !important;
           color: white !important;
           font-size: 12px !important;
@@ -527,7 +550,7 @@ export default function UNTLiveMapInner() {
           flex-shrink: 0;
         }
         .leaflet-routing-collapse-btn:hover {
-          background: rgba(255,255,255,0.35) !important;
+          background: rgba(255, 255, 255, 0.35) !important;
         }
       `}</style>
     </div>
