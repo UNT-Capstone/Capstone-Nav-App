@@ -14,19 +14,30 @@ import UNTSearchBar from "./UNTSearchBar";
 import ParkingOverlay from "../../parking/components/ParkingOverlay";
 import LocationDetailsPanel from "./LocationDetailsPanel";
 
+const userIcon = L.divIcon({
+  className: "",
+  html: `<div class="w-4 h-4 bg-green-500 rounded-full animate-pulse border-2 border-white shadow-lg"></div>`,
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
+});
+
+const destinationIcon = L.divIcon({
+  className: "",
+  html: `<div class="w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow-lg"></div>`,
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
+});
+
 
 const getNearestLocation = async (lat: number, lng: number) => {
   try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
-    );
+    const res = await fetch(`/api/reverse-geocode?lat=${lat}&lon=${lng}`);
     const data = await res.json();
     return data?.display_name?.split(",")[0] || "Current Location";
   } catch {
     return "Current Location";
   }
 };
-
 
 const FlyToMarker = ({ position }: any) => {
   const map = useMap();
@@ -39,7 +50,6 @@ const FlyToMarker = ({ position }: any) => {
 
   return null;
 };
-
 
 const FitRouteBounds = ({ start, end }: any) => {
   const map = useMap();
@@ -62,6 +72,7 @@ const FitRouteBounds = ({ start, end }: any) => {
 const ORSRouting = ({ start, end, setDirections }: any) => {
   const map = useMap();
   const routeLayersRef = useRef<any[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     if (!start || !end) return;
@@ -89,16 +100,35 @@ const ORSRouting = ({ start, end, setDirections }: any) => {
 
       setDirections(steps);
 
-      const layer = L.geoJSON(data.features[0], {
-        style: {
-          color: "#00853E",
-          weight: 6,
-        },
-      }).addTo(map);
+      data.features.forEach((feature: any, index: number) => {
+        const layer = L.geoJSON(feature, {
+          style: {
+            color: index === activeIndex ? "#00853E" : "#9CA3AF",
+            weight: index === activeIndex ? 6 : 4,
+            opacity: index === activeIndex ? 1 : 0.6,
+          },
+        }).addTo(map);
 
-      routeLayersRef.current.push(layer);
+        layer.on("click", () => {
+          setActiveIndex(index);
 
-      map.fitBounds(layer.getBounds(), {
+          setDirections(
+            data.features[index]?.properties?.segments?.[0]?.steps || []
+          );
+
+          routeLayersRef.current.forEach((l, i) => {
+            l.setStyle({
+              color: i === index ? "#00853E" : "#9CA3AF",
+              weight: i === index ? 6 : 4,
+              opacity: i === index ? 1 : 0.6,
+            });
+          });
+        });
+
+        routeLayersRef.current.push(layer);
+      });
+
+      map.fitBounds(L.geoJSON(data.features[0]).getBounds(), {
         padding: [100, 100],
         maxZoom: 16,
       });
@@ -113,7 +143,6 @@ const ORSRouting = ({ start, end, setDirections }: any) => {
 
   return null;
 };
-
 
 export default function UNTLiveMapInner() {
   const searchParams = useSearchParams();
@@ -131,6 +160,7 @@ export default function UNTLiveMapInner() {
 
   const routeStart = userPosition ?? defaultPosition;
 
+  const showSearchBar = !destination;
 
   useEffect(() => {
     delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -144,7 +174,6 @@ export default function UNTLiveMapInner() {
     });
   }, []);
 
-
   useEffect(() => {
     if (!navigator.geolocation) return;
 
@@ -155,7 +184,6 @@ export default function UNTLiveMapInner() {
     return () => navigator.geolocation.clearWatch(id);
   }, []);
 
-  
   useEffect(() => {
     const lat = searchParams.get("lat");
     const lng = searchParams.get("lng");
@@ -165,7 +193,6 @@ export default function UNTLiveMapInner() {
     }
   }, [searchParams]);
 
- 
   useEffect(() => {
     if (!userPosition) return;
 
@@ -176,7 +203,6 @@ export default function UNTLiveMapInner() {
 
   const handleGetDirections = () => {
     if (!selectedLocation) return;
-
     setDestination([selectedLocation.lat, selectedLocation.lng]);
     setSelectedLocation(null);
   };
@@ -184,19 +210,17 @@ export default function UNTLiveMapInner() {
   const handleEndRoute = () => {
     setDestination(null);
     setDirections([]);
+    setSelectedLocation(null);
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col">
+    <div className="h-screen w-screen relative">
 
-      {}
-      <div className="pt-28 px-4 flex justify-center z-[1000]">
-        {!showParking && (
-          <div className="w-full max-w-md">
-            <UNTSearchBar onSelect={setSelectedLocation} />
-          </div>
-        )}
-      </div>
+      {showSearchBar && (
+        <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[2000] w-[92vw] md:w-[420px]">
+          <UNTSearchBar onSelect={setSelectedLocation} />
+        </div>
+      )}
 
       <LocationDetailsPanel
         location={selectedLocation}
@@ -204,8 +228,7 @@ export default function UNTLiveMapInner() {
         onDirections={handleGetDirections}
       />
 
-      {}
-      <div className="flex-1 relative">
+      <div className="h-full w-full">
         <MapContainer
           center={defaultPosition}
           zoom={15}
@@ -222,13 +245,13 @@ export default function UNTLiveMapInner() {
           )}
 
           {userPosition && (
-            <Marker position={userPosition}>
+            <Marker position={userPosition} icon={userIcon}>
               <Popup>You ({nearestLocationName})</Popup>
             </Marker>
           )}
 
           {destination && (
-            <Marker position={destination}>
+            <Marker position={destination} icon={destinationIcon}>
               <Popup>Destination</Popup>
             </Marker>
           )}
@@ -244,8 +267,7 @@ export default function UNTLiveMapInner() {
           {showParking && <ParkingOverlay />}
         </MapContainer>
 
-        {}
-        <div className="absolute top-4 left-4 flex flex-col gap-3 z-[1000]">
+        <div className="absolute top-[110px] left-6 z-[999]">
           <button
             onClick={() => setShowParking(!showParking)}
             className="bg-white px-4 py-2 rounded-xl shadow"
@@ -253,30 +275,19 @@ export default function UNTLiveMapInner() {
             {showParking ? "Hide Parking" : "Show Parking"}
           </button>
         </div>
-
-        {}
-        {destination && (
-          <button
-            onClick={handleEndRoute}
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-red-500 text-white px-6 py-2 rounded-full shadow z-[1000]"
-          >
-            End Route
-          </button>
-        )}
       </div>
 
-      {}
       {destination && directions.length > 0 && (
         <div className="
-          md:absolute md:top-28 md:right-4 md:w-80 md:max-h-[70vh]
-          fixed bottom-0 left-0 right-0 h-[40vh]
+          md:absolute md:top-28 md:left-4 md:w-[460px] md:max-h-[70vh]
+          fixed bottom-0 left-0 right-0 h-[80vh]
           bg-white shadow-2xl rounded-t-2xl md:rounded-xl z-[2000] flex flex-col
         ">
           <div className="bg-[#00853E] text-white p-3 font-bold">
             Directions
           </div>
 
-          <div className="overflow-y-auto p-3 space-y-2 text-sm">
+          <div className="overflow-y-auto p-3 space-y-2 text-sm flex-1">
             {directions.map((step, i) => (
               <div key={i} className="p-2 hover:bg-gray-100 rounded">
                 {i + 1}. {step.instruction}
@@ -285,6 +296,15 @@ export default function UNTLiveMapInner() {
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="p-3">
+            <button
+              onClick={handleEndRoute}
+              className="w-full bg-red-500 text-white py-2 rounded-lg font-semibold"
+            >
+              End Route
+            </button>
           </div>
         </div>
       )}
