@@ -42,7 +42,7 @@ export const FlyToMarker = ({ position, isEvent }: any) => {
   return null;
 };
 
-// ---------------- Fit Bounds (Improved zoom feel) ----------------
+// ---------------- Fit Bounds ----------------
 const FitRouteBounds = ({ start, end }: any) => {
   const map = useMap();
 
@@ -53,7 +53,7 @@ const FitRouteBounds = ({ start, end }: any) => {
 
     map.fitBounds(bounds, {
       padding: [120, 120],
-      maxZoom: 16,   // IMPORTANT: prevents ugly super-zoom
+      maxZoom: 16,
       animate: true,
     });
   }, [start, end, map]);
@@ -86,7 +86,6 @@ const ORSRouting = ({ start, end, setDirections }: any) => {
 
       if (!data?.features?.length) return;
 
-      // clear old routes
       routeLayersRef.current.forEach((l) => map.removeLayer(l));
       routeLayersRef.current = [];
 
@@ -95,7 +94,6 @@ const ORSRouting = ({ start, end, setDirections }: any) => {
 
       setDirections(steps);
 
-      // draw routes (active green, others gray)
       data.features.forEach((feature: any, index: number) => {
         const layer = L.geoJSON(feature, {
           style: {
@@ -158,6 +156,9 @@ export default function UNTLiveMapInner() {
   const [selectedLocation, setSelectedLocation] = useState<any>(null);
   const [directions, setDirections] = useState<any[]>([]);
 
+  // for live rerouting threshold
+  const prevRouteStart = useRef<any>(null);
+
   const routeStart = userPosition ?? defaultPosition;
 
   // fix leaflet icons
@@ -204,12 +205,43 @@ export default function UNTLiveMapInner() {
     );
   }, [userPosition]);
 
+  // live rerouting — only when destination is active and user moved ~20m+
+  useEffect(() => {
+    if (!destination || !userPosition) return;
+
+    const [prevLat, prevLng] = prevRouteStart.current ?? [null, null];
+    const [newLat, newLng] = userPosition;
+
+    if (prevLat === null) {
+      prevRouteStart.current = userPosition;
+      return;
+    }
+
+    const dist = Math.sqrt(
+      (newLat - prevLat) ** 2 + (newLng - prevLng) ** 2
+    );
+
+    // ~0.0002 degrees ≈ 20 meters
+    if (dist < 0.0002) return;
+
+    prevRouteStart.current = userPosition;
+    // trigger ORSRouting re-fetch by nudging destination reference
+    setDestination((d: any) => (d ? [...d] : d));
+  }, [userPosition]);
+
   const handleGetDirections = () => {
     if (!selectedLocation) return;
 
     setDestination([selectedLocation.lat, selectedLocation.lng]);
     setSelectedLocation(null);
     setIsEventTarget(false);
+    prevRouteStart.current = null; // reset reroute ref on new route
+  };
+
+  const handleEndRoute = () => {
+    setDestination(null);
+    setDirections([]);
+    prevRouteStart.current = null;
   };
 
   return (
@@ -266,11 +298,10 @@ export default function UNTLiveMapInner() {
         {showParking && <ParkingOverlay />}
       </MapContainer>
 
-      {/* ONLY SHOW AFTER DESTINATION SELECTED */}
+      {/* Directions panel */}
       {destination && directions.length > 0 && (
         <div className="absolute top-20 right-4 w-80 max-h-[70vh] bg-white shadow-2xl rounded-xl z-[9999] flex flex-col">
-          
-          <div className="bg-[#00853E] text-white p-3 font-bold">
+          <div className="bg-[#00853E] text-white p-3 font-bold rounded-t-xl">
             Directions
           </div>
 
@@ -280,7 +311,6 @@ export default function UNTLiveMapInner() {
                 <div>
                   {i + 1}. {step.instruction}
                 </div>
-
                 <div className="text-gray-500 text-xs">
                   {Math.round(step.distance)} m
                 </div>
@@ -288,6 +318,16 @@ export default function UNTLiveMapInner() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* End Route button */}
+      {destination && (
+        <button
+          onClick={handleEndRoute}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-full shadow-lg z-[9999] font-semibold"
+        >
+          End Route
+        </button>
       )}
 
       <button

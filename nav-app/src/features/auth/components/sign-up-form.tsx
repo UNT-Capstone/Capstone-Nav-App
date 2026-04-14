@@ -87,9 +87,7 @@ export default function SignupForm() {
           Create Account
         </h1>
 
-        <p className="text-sm mb-6">
-          Sign up to get started!
-        </p>
+        <p className="text-sm mb-6">Sign up to get started!</p>
 
         <Form {...form}>
           <form
@@ -131,6 +129,9 @@ export default function SignupForm() {
                       />
                     </FormControl>
                     <FormMessage />
+                    <p className="text-xs text-gray-400 text-left">
+                      Use your personal email address to sign up.
+                    </p>
                   </FormItem>
                 )}
               />
