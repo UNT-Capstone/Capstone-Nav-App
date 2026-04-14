@@ -13,7 +13,7 @@ interface UNTSearchBarProps {
   onSelect: (loc: { name: string; lat: number; lng: number }) => void;
 }
 
-// ✅ UPDATED: Denton-restricted geocoding
+
 async function geocodeLocation(query: string): Promise<LocationResult[]> {
   try {
     const response = await fetch(

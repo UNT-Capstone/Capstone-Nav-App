@@ -28,7 +28,7 @@ const getNearestLocation = async (lat: number, lng: number) => {
 };
 
 // ---------------- FlyTo ----------------
-const FlyToMarker = ({ position, isEvent }: any) => {
+export const FlyToMarker = ({ position, isEvent }: any) => {
   const map = useMap();
 
   useEffect(() => {
