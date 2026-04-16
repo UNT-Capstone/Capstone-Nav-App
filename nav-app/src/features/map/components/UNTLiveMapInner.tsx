@@ -217,7 +217,7 @@ export default function UNTLiveMapInner() {
     <div className="h-screen w-screen relative">
 
       {showSearchBar && (
-        <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[2000] w-[92vw] md:w-[420px]">
+        <div className="fixed top-28 left-1/2 -translate-x-1/2 z-[2000] w-[92vw] md:w-[420px]">
           <UNTSearchBar onSelect={setSelectedLocation} />
         </div>
       )}

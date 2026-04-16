@@ -6,7 +6,7 @@ export default async function HomePage() {
   await requireAuth();
 
   return (
-    <div className="w-screen h-screen overflow-hidden relative">
+    <div className="w-screen h-screen overflow-hidden relative -mt-28">
       <UNTLiveMap />
       <ChatBoxWrapper />
     </div>

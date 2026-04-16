@@ -66,10 +66,7 @@ export function GlassNavProfile() {
             </li>
             
             <li className="mt-1 pt-1 border-t border-gray-100">
-              {/* Wrapping Logout in a div to apply the same hover logic if needed */}
-              <div className="hover:bg-gray-200/70 rounded-lg transition-all duration-200" onClick={() => setIsOpen(false)}>
-                <LogoutButton />
-              </div>
+              <LogoutButton onClick={() => setIsOpen(false)} />
             </li>
           </ul>
         </div>
