@@ -1,5 +1,5 @@
 import { requireAuth } from "@/src/lib/auth-utils"; 
-import UNTEventsPage from "./UNTEventsClient"; 
+import UNTEventsPage from "./UNTEventsClient"; // Adjusted name
 
 export default async function Page() {
   // 1. Ensure the user is logged in

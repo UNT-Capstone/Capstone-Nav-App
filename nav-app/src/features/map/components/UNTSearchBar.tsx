@@ -13,12 +13,26 @@ interface UNTSearchBarProps {
   onSelect: (loc: { name: string; lat: number; lng: number }) => void;
 }
 
+// UNT + Denton + Discovery Park area
+const BBOX = {
+  left: -97.35,
+  right: -97.05,
+  top: 33.30,
+  bottom: 33.10,
+};
+
 async function geocodeLocation(query: string): Promise<LocationResult[]> {
   try {
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        query
+      )}&limit=8&bounded=1&viewbox=${BBOX.left},${BBOX.top},${BBOX.right},${BBOX.bottom}`
     );
+
     const results = await response.json();
+
+    if (!Array.isArray(results)) return [];
+
     return results.map((result: any) => ({
       name: result.display_name,
       lat: parseFloat(result.lat),
@@ -44,6 +58,7 @@ export default function UNTSearchBar({ onSelect }: UNTSearchBarProps) {
 
     const timer = setTimeout(() => {
       setLoading(true);
+
       geocodeLocation(query).then((res) => {
         setResults(res);
         setLoading(false);
@@ -56,51 +71,57 @@ export default function UNTSearchBar({ onSelect }: UNTSearchBarProps) {
   const filtered = results.slice(0, 8);
 
   return (
-    <div className="fixed top-28 md:top-32 left-1/2 transform -translate-x-1/2 w-[85vw] md:w-80 z-2000">
+    <div className="w-full relative">
       <div className="relative">
         <input
           type="text"
-          placeholder="Search buildings or locations..."
+          placeholder="Search UNT buildings, dining halls..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="w-full p-3 border rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          className="w-full p-3 rounded-xl shadow border focus:outline-none focus:ring-2 focus:ring-green-600 bg-white"
         />
+
         {loading && (
-          <div className="absolute right-3 top-3 text-gray-500">
+          <div className="absolute right-3 top-3 text-gray-500 text-sm">
             Loading...
           </div>
         )}
       </div>
 
       {query.length > 0 && (
-        <div className="bg-white border rounded-lg shadow mt-2 max-h-60 overflow-y-auto">
+        <div className="bg-white border rounded-xl shadow mt-2 max-h-64 overflow-y-auto">
           {filtered.length > 0 ? (
-            filtered.map((loc, index) => (
-              <div
-                key={index}
-                className="p-3 hover:bg-blue-100 cursor-pointer border-b last:border-b-0"
-                onClick={() => {
-                  const placeName = loc.name.split(",")[0];
+            filtered.map((loc, index) => {
+              const placeName = loc.name.split(",")[0];
 
-                  onSelect({
-                    name: placeName,
-                    lat: loc.lat,
-                    lng: loc.lng,
-                  });
+              return (
+                <div
+                  key={index}
+                  className="p-3 hover:bg-green-50 cursor-pointer border-b last:border-b-0"
+                  onClick={() => {
+                    onSelect({
+                      name: placeName,
+                      lat: loc.lat,
+                      lng: loc.lng,
+                    });
 
-                  startTransition(() => {
-                    saveSearch(placeName);
-                  });
+                    startTransition(() => {
+                      saveSearch(placeName);
+                    });
 
-                  setQuery("");
-                  setResults([]);
-                }}
-              >
-                <div className="font-medium text-sm">{loc.name}</div>
-              </div>
-            ))
-          ) : !loading && query.length > 0 ? (
-            <p className="p-3 text-gray-500 text-center">No locations found</p>
+                    setQuery("");
+                    setResults([]);
+                  }}
+                >
+                  <div className="text-sm font-medium">{placeName}</div>
+                  <div className="text-xs text-gray-500">{loc.name}</div>
+                </div>
+              );
+            })
+          ) : !loading ? (
+            <p className="p-3 text-gray-500 text-center">
+              No UNT-area results found
+            </p>
           ) : null}
         </div>
       )}

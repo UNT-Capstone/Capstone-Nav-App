@@ -2,15 +2,21 @@
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { Form } from "@/components/ui/form";
-import { zodResolver } from "@hookform/resolvers/zod"
+import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { motion, AnimatePresence } from "framer-motion";
 import { authClient } from "@/src/lib/auth-client";
 import { toast } from "sonner";
 import { useState } from "react";
 
-// defining the shape of the form 
+// Schema
 const loginSchema = z.object({
   email: z.email("Please enter a valid email address"),
   password: z.string().min(1, "Password is required"),
@@ -21,14 +27,16 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function LoginForm() {
   const router = useRouter();
 
-  // Forgot password modal state
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
-  const [forgotStatus, setForgotStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
+  const [forgotStatus, setForgotStatus] = useState<
+    "idle" | "loading" | "sent" | "error"
+  >("idle");
   const [forgotError, setForgotError] = useState("");
 
-  // Resend verification state
-  const [resendStatus, setResendStatus] = useState<"idle" | "loading" | "sent">("idle");
+  const [resendStatus, setResendStatus] = useState<
+    "idle" | "loading" | "sent"
+  >("idle");
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -44,16 +52,17 @@ export default function LoginForm() {
         email: values.email,
         password: values.password,
         callbackURL: "/home",
-      }, {
+      },
+      {
         onSuccess: () => {
           router.push("/home");
         },
         onError: (ctx) => {
           toast.error(ctx.error.message);
-        }
+        },
       }
-    )
-  }
+    );
+  };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +76,9 @@ export default function LoginForm() {
       });
       setForgotStatus("sent");
     } catch (err: any) {
-      setForgotError(err?.message || "Something went wrong. Please try again.");
+      setForgotError(
+        err?.message || "Something went wrong. Please try again."
+      );
       setForgotStatus("error");
     }
   };
@@ -86,7 +97,7 @@ export default function LoginForm() {
       });
       setResendStatus("sent");
       toast.success("Verification email sent! Check your inbox.");
-    } catch (err: any) {
+    } catch {
       toast.error("Failed to resend. Please try again.");
       setResendStatus("idle");
     }
@@ -102,22 +113,38 @@ export default function LoginForm() {
   const isPending = form.formState.isSubmitting;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-linear-to-b from-[#e6f4ec] to-[#c8e6d4] p-6">
-      <motion.div 
+    <div
+      className="
+        flex flex-col items-center justify-center
+        min-h-screen
+        pt-28
+        bg-linear-to-b from-[#e6f4ec] to-[#c8e6d4]
+        p-6
+      "
+    >
+      <motion.div
         className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md text-center"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1 className="text-3xl font-bold mb-3 text-[#00853E]">Welcome Back!</h1>
-        <p className="text-3l mb-6">Login to continue</p>
+        <h1 className="text-3xl font-bold mb-3 text-[#00853E]">
+          Welcome Back!
+        </h1>
+
+        {/* FIXED TYPO HERE */}
+        <p className="text-sm mb-6">Login to continue</p>
+
         <Form {...form}>
-          <form className="flex flex-col gap-4 w-full" onSubmit={form.handleSubmit(onSubmit)}>
+          <form
+            className="flex flex-col gap-4 w-full"
+            onSubmit={form.handleSubmit(onSubmit)}
+          >
             <div className="grid gap-6">
-              <FormField 
+              <FormField
                 control={form.control}
                 name="email"
-                render={({ field }) =>(
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
@@ -128,14 +155,15 @@ export default function LoginForm() {
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage/>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField 
+
+              <FormField
                 control={form.control}
                 name="password"
-                render={({ field }) =>(
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
@@ -146,8 +174,8 @@ export default function LoginForm() {
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage/>
-                    {/* Forgot password link */}
+                    <FormMessage />
+
                     <div className="text-right mt-1">
                       <button
                         type="button"
@@ -161,6 +189,7 @@ export default function LoginForm() {
                 )}
               />
             </div>
+
             <button
               type="submit"
               className="bg-[#00853E] text-white px-4 py-2 rounded hover:bg-[#007338] transition font-semibold"
@@ -171,12 +200,14 @@ export default function LoginForm() {
           </form>
         </Form>
 
-        {/* Resend verification email */}
+        {/* Resend */}
         <div className="mt-3">
           <button
             type="button"
             onClick={handleResendVerification}
-            disabled={resendStatus === "loading" || resendStatus === "sent"}
+            disabled={
+              resendStatus === "loading" || resendStatus === "sent"
+            }
             className="text-xs text-gray-400 hover:text-[#00853E] hover:underline disabled:opacity-50"
           >
             {resendStatus === "sent"
@@ -224,10 +255,13 @@ export default function LoginForm() {
                 {forgotStatus === "sent" ? (
                   <div className="space-y-3">
                     <div className="text-4xl">📬</div>
-                    <h2 className="text-lg font-bold text-gray-800">Check your email</h2>
+                    <h2 className="text-lg font-bold text-gray-800">
+                      Check your email
+                    </h2>
                     <p className="text-gray-500 text-sm">
-                      If an account exists for <strong>{forgotEmail}</strong>, we sent
-                      a reset link. It expires in 1 hour.
+                      If an account exists for{" "}
+                      <strong>{forgotEmail}</strong>, we sent a reset
+                      link.
                     </p>
                     <button
                       onClick={closeForgotModal}
@@ -238,36 +272,42 @@ export default function LoginForm() {
                   </div>
                 ) : (
                   <>
-                    <h2 className="text-xl font-bold text-[#00853E] mb-1">Reset Password</h2>
+                    <h2 className="text-xl font-bold text-[#00853E] mb-1">
+                      Reset Password
+                    </h2>
                     <p className="text-gray-500 text-sm mb-5">
                       Enter your email and we'll send you a reset link.
                     </p>
-                    <form onSubmit={handleForgotPassword} className="flex flex-col gap-4">
+
+                    <form
+                      onSubmit={handleForgotPassword}
+                      className="flex flex-col gap-4"
+                    >
                       <input
                         type="email"
                         required
                         value={forgotEmail}
-                        onChange={(e) => setForgotEmail(e.target.value)}
+                        onChange={(e) =>
+                          setForgotEmail(e.target.value)
+                        }
                         placeholder="user@example.com"
                         className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#00A85D] text-sm"
                       />
 
                       {forgotStatus === "error" && (
-                        <p className="text-red-500 text-xs">{forgotError}</p>
+                        <p className="text-red-500 text-xs">
+                          {forgotError}
+                        </p>
                       )}
 
-                      <button
-                        type="submit"
-                        disabled={forgotStatus === "loading"}
-                        className="bg-[#00853E] text-white px-4 py-2 rounded hover:bg-[#007338] transition font-semibold text-sm disabled:opacity-60"
-                      >
-                        {forgotStatus === "loading" ? "Sending..." : "Send Reset Link"}
+                      <button className="bg-[#00853E] text-white px-4 py-2 rounded">
+                        Send Reset Link
                       </button>
 
                       <button
                         type="button"
                         onClick={closeForgotModal}
-                        className="text-sm text-gray-400 hover:text-gray-600"
+                        className="text-sm text-gray-400"
                       >
                         Cancel
                       </button>
