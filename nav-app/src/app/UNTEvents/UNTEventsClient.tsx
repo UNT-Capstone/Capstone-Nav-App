@@ -92,7 +92,7 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
   const trpc = useTRPC();
   
   // --- STATE ---
-  const [view, setView] = useState<"official" | "user">("official");
+  const [view, setView] = useState<"official" | "user" | "my-events">("official");
   const [events, setEvents] = useState<UNTEvent[]>([]);
   const [userEvents, setUserEvents] = useState<UNTEvent[]>([]);
   const [activeEventId, setActiveEventId] = useState<number | null>(null);
@@ -211,7 +211,6 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
     e.preventDefault();
     
     if (isEditing && editEventId) {
-      // Update existing event
       setUserEvents(prev => prev.map(ev => ev.id === editEventId ? {
         ...ev,
         title: formData.title,
@@ -222,7 +221,6 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
         geo: { latitude: formData.lat, longitude: formData.lng }
       } : ev));
     } else {
-      // Create new event
       const newEvent: UNTEvent = {
         id: Date.now(),
         title: formData.title,
@@ -267,16 +265,32 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
     setReplyingTo(null);
   };
 
-  const currentEventList = view === "official" ? events : userEvents;
+  // --- FILTERED DATA LOGIC ---
+  const myInvolvedEvents = useMemo(() => {
+    const allEvents = [...events, ...userEvents];
+    return allEvents.filter(ev => 
+      ev.createdBy === currentUser.name || 
+      ev.taggedFriends?.some(f => f.name === currentUser.name)
+    );
+  }, [events, userEvents, currentUser.name]);
+
+  const currentEventList = useMemo(() => {
+    if (view === "official") return events;
+    if (view === "user") return userEvents;
+    return myInvolvedEvents;
+  }, [view, events, userEvents, myInvolvedEvents]);
+
   const filteredEvents = useMemo(() => {
-    return currentEventList.filter((event) => event.title.toLowerCase().includes(searchQuery.toLowerCase()));
+    return currentEventList.filter((event) => 
+      event.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
   }, [currentEventList, searchQuery]);
 
   const activeEvent = currentEventList.find((e) => e.id === activeEventId) || (filteredEvents.length > 0 ? filteredEvents[0] : null);
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 pt-32">
-       <p className="text-[#00853E] font-black uppercase tracking-widest text-sm animate-pulse">🦅 Fetching UNT Data...</p>
+        <p className="text-[#00853E] font-black uppercase tracking-widest text-sm animate-pulse">🦅 Fetching UNT Data...</p>
     </div>
   );
 
@@ -286,7 +300,8 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
         <header className="mb-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-center gap-2 bg-gray-200/50 p-1.5 rounded-2xl w-fit">
             <button onClick={() => { setView("official"); setActiveEventId(null); }} className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${view === "official" ? "bg-[#00853E] text-white shadow-lg" : "text-gray-500 hover:text-[#00853E]"}`}>UNT Events</button>
-            <button onClick={() => { setView("user"); setActiveEventId(null); }} className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${view === "user" ? "bg-[#00853E] text-white shadow-lg" : "text-gray-500 hover:text-[#00853E]"}`}>User Events</button>
+            <button onClick={() => { setView("user"); setActiveEventId(null); }} className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${view === "user" ? "bg-[#00853E] text-white shadow-lg" : "text-gray-500 hover:text-[#00853E]"}`}>Community</button>
+            <button onClick={() => { setView("my-events"); setActiveEventId(null); }} className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${view === "my-events" ? "bg-[#00853E] text-white shadow-lg" : "text-gray-500 hover:text-[#00853E]"}`}>My Events</button>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <input type="text" placeholder="Search events..." className="pl-4 pr-4 py-3 rounded-xl border border-gray-200 text-sm outline-none w-full md:w-64 bg-white shadow-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
@@ -296,7 +311,14 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-12 bg-white rounded-[2.5rem] shadow-2xl overflow-hidden md:h-[calc(100vh-340px)] border border-gray-100">
           <div className="md:col-span-4 border-r overflow-y-auto bg-[#fafafa]">
-            {filteredEvents.map((event) => (
+            {filteredEvents.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-12 text-center h-full">
+                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                        {view === "my-events" ? "Nothing scheduled yet" : "No results found"}
+                    </p>
+                    {view === "my-events" && <p className="text-[9px] text-gray-400 mt-2">Tag friends or create your own events to see them here.</p>}
+                </div>
+            ) : filteredEvents.map((event) => (
               <button key={event.id} onClick={() => { setActiveEventId(event.id); setShowForum(false); setReplyingTo(null); }} className={`w-full text-left p-6 border-b transition-all relative ${activeEventId === event.id ? "bg-white border-l-[10px] border-l-[#00853E] shadow-inner" : "opacity-60 hover:opacity-100"}`}>
                 <div className="flex justify-between items-center mb-1">
                   <p className="text-[10px] font-black text-[#00853E] uppercase">{new Date(event.first_date).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}</p>
@@ -320,7 +342,6 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
                       {activeEvent.taggedFriends?.map(friend => (
                         <span key={friend.id} className="bg-green-50 text-[#00853E] text-[9px] px-3 py-1.5 rounded-full font-black tracking-widest border border-green-100">🤝 WITH {friend.name.toUpperCase()}</span>
                       ))}
-                      {/* --- EDIT BUTTON FOR OWNER --- */}
                       {activeEvent.createdBy === currentUser.name && (
                         <button onClick={() => openEditModal(activeEvent)} className="ml-auto text-[9px] font-black text-gray-400 hover:text-[#00853E] uppercase tracking-widest underline underline-offset-4 decoration-2">
                           Edit Post
