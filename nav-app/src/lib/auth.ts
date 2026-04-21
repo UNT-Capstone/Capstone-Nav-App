@@ -58,7 +58,7 @@ export const auth = betterAuth({
     deleteUnverifiedUsersAfter: 60 * 15,
     sendVerificationEmail: async ({ user, url }) => {
       await resend.emails.send({
-        from: "UNT Navigator <onboarding@resend.dev>",
+        from: "UNT Navigator <noreply@untnavigation.me>",
         to: user.email,
         subject: "Welcome to UNT Navigator! Verify your email",
         tags: [{ name: "click_tracking", value: "false" }],
