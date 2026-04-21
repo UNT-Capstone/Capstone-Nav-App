@@ -55,7 +55,7 @@ const ProfilePage = async () => {
   }
 
   return (
-    <div className="flex flex-col items-center min-h-screen bg-gradient-to-b from-[#00853E] to-[#00A651] py-10">
+    <div className="flex flex-col items-center min-h-screen bg-gradient-to-b from-[#00853E] to-[#00A651] py-10 -mt-28">
 
       <h1 className="text-3xl font-bold text-white mb-2">My Profile</h1>
       <p className="mb-8 text-green-100">
