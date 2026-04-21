@@ -30,7 +30,7 @@ export const auth = betterAuth({
     requireEmailVerification: true,
     sendResetPassword: async ({ user, url }) => {
       await resend.emails.send({
-        from: "UNT Navigator <onboarding@resend.dev>",
+        from: "UNT Navigator <noreply@untnavigation.me>",
         to: user.email,
         subject: "Reset your password",
         tags: [{ name: "click_tracking", value: "false" }],
