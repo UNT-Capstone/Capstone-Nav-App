@@ -37,13 +37,6 @@ export default async function GlassNavbar() {
         <div className="flex items-center gap-8">
           {authenticated ? (
             <div className="flex items-center gap-6">
-              {/* Added Schedule Link */}
-              <Link 
-                href="/calendar" 
-                className="text-gray-800 font-bold hover:text-[#00853E] transition-all"
-              >
-                Schedule
-              </Link>
               <GlassNavProfile />
             </div>
           ) : (

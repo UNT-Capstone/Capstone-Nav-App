@@ -289,13 +289,13 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
   const activeEvent = currentEventList.find((e) => e.id === activeEventId) || (filteredEvents.length > 0 ? filteredEvents[0] : null);
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 pt-32">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <p className="text-[#00853E] font-black uppercase tracking-widest text-sm animate-pulse">🦅 Fetching UNT Data...</p>
     </div>
   );
 
   return (
-    <main className="min-h-screen pt-32 pb-12 px-4 md:px-8 bg-gray-50 text-gray-900 font-sans relative z-0 overflow-hidden">
+    <main className="min-h-screen pb-12 px-4 md:px-8 bg-gray-50 text-gray-900 font-sans relative z-0 overflow-hidden pt-8">
       <div className="max-w-6xl mx-auto">
         <header className="mb-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-center gap-2 bg-gray-200/50 p-1.5 rounded-2xl w-fit">
@@ -411,29 +411,29 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-md">
-          <div className="bg-white rounded-[2.5rem] p-10 w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-3xl font-black text-[#00853E] uppercase mb-8 tracking-tighter">
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-start md:items-center justify-center p-2 md:p-4 backdrop-blur-md">
+          <div className="bg-white rounded-2xl md:rounded-[2.5rem] p-4 md:p-8 w-full max-w-sm md:max-w-lg shadow-2xl animate-in zoom-in-95 duration-200 max-h-[95vh] md:max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl md:text-3xl font-black text-[#00853E] uppercase mb-4 md:mb-8 tracking-tighter">
               {isEditing ? "Edit Post" : "New Community Post"}
             </h3>
-            <form onSubmit={handleFormSubmit} className="space-y-4">
-              <input required placeholder="Event Name" className="w-full p-4 bg-gray-100 rounded-2xl outline-none text-sm font-bold" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
-              <div className="grid grid-cols-2 gap-4">
-                <input required type="date" className="p-4 bg-gray-100 rounded-2xl outline-none text-sm" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
-                <input required type="time" className="p-4 bg-gray-100 rounded-2xl outline-none text-sm" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} />
+            <form onSubmit={handleFormSubmit} className="space-y-3 md:space-y-4">
+              <input required placeholder="Event Name" className="w-full p-3 md:p-4 bg-gray-100 rounded-xl md:rounded-2xl outline-none text-sm font-bold" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+              <div className="grid grid-cols-2 gap-3 md:gap-4">
+                <input required type="date" className="p-3 md:p-4 bg-gray-100 rounded-xl md:rounded-2xl outline-none text-sm" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+                <input required type="time" className="p-3 md:p-4 bg-gray-100 rounded-xl md:rounded-2xl outline-none text-sm" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} />
               </div>
               
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-gray-400 ml-2">Tag Friends</label>
-                <div className="flex flex-wrap gap-2 mb-1">
+                <div className="flex flex-wrap gap-1.5 md:gap-2 mb-1">
                   {selectedFriends.map(friend => (
-                    <span key={friend.id} className="bg-[#00853E]/10 text-[#00853E] px-3 py-1 rounded-full text-[10px] font-black flex items-center gap-2">
+                    <span key={friend.id} className="bg-[#00853E]/10 text-[#00853E] px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black flex items-center gap-1 md:gap-2">
                       {friend.name.toUpperCase()}
-                      <button type="button" onClick={() => setSelectedFriends(prev => prev.filter(f => f.id !== friend.id))} className="hover:text-red-500 font-bold">✕</button>
+                      <button type="button" onClick={() => setSelectedFriends(prev => prev.filter(f => f.id !== friend.id))} className="hover:text-red-500 font-bold text-[10px]">✕</button>
                     </span>
                   ))}
                 </div>
-                <button type="button" onClick={() => setShowFriendPicker(!showFriendPicker)} className="w-full p-4 bg-gray-100 rounded-2xl text-left text-xs text-gray-500 flex justify-between items-center border border-transparent hover:border-gray-200 transition-all">
+                <button type="button" onClick={() => setShowFriendPicker(!showFriendPicker)} className="w-full p-3 md:p-4 bg-gray-100 rounded-xl md:rounded-2xl text-left text-xs text-gray-500 flex justify-between items-center border border-transparent hover:border-gray-200 transition-all">
                   {showFriendPicker ? "Close Friend List" : "Add Friends to this event..."}
                   <span className="text-[8px]">{showFriendPicker ? "▲" : "▼"}</span>
                 </button>
@@ -452,15 +452,15 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
               </div>
 
               <div className="space-y-2">
-                <input required placeholder="Location Name" className="w-full p-4 bg-gray-100 rounded-2xl outline-none text-sm" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
-                <button type="button" onClick={handlePickOnMap} className="w-full py-3 bg-gray-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[#00853E] transition-all flex items-center justify-center gap-2">
+                <input required placeholder="Location Name" className="w-full p-3 md:p-4 bg-gray-100 rounded-xl md:rounded-2xl outline-none text-sm" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
+                <button type="button" onClick={handlePickOnMap} className="w-full py-2.5 md:py-3 bg-gray-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[#00853E] transition-all flex items-center justify-center gap-2">
                   📍 {formData.lat !== "33.2108" ? "Location Set (Change)" : "Pinpoint Precise Spot on Map"}
                 </button>
               </div>
-              <textarea required placeholder="Description" rows={3} className="w-full p-4 bg-gray-100 rounded-2xl outline-none text-sm resize-none" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
-              <div className="flex gap-4 pt-4">
-                <button type="button" onClick={closeForm} className="flex-grow py-5 bg-gray-200 rounded-2xl font-black uppercase text-[10px]">Cancel</button>
-                <button type="submit" className="flex-grow py-5 bg-[#00853E] text-white rounded-2xl font-black uppercase text-[10px]">
+              <textarea required placeholder="Description" rows={3} className="w-full p-3 md:p-4 bg-gray-100 rounded-xl md:rounded-2xl outline-none text-sm resize-none" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+              <div className="flex gap-3 md:gap-4 pt-3 md:pt-4">
+                <button type="button" onClick={closeForm} className="flex-grow py-3 md:py-5 bg-gray-200 rounded-xl md:rounded-2xl font-black uppercase text-[10px]">Cancel</button>
+                <button type="submit" className="flex-grow py-3 md:py-5 bg-[#00853E] text-white rounded-xl md:rounded-2xl font-black uppercase text-[10px]">
                   {isEditing ? "Save Changes" : "Post to Feed"}
                 </button>
               </div>
