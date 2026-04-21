@@ -66,7 +66,7 @@ const ProfilePage = async () => {
   return (
     <main className="min-h-screen bg-[#f8fafc] flex flex-col items-center">
       {/* HEADER SECTION */}
-      <div className="w-full bg-[#00853E] pt-32 pb-20 px-6 flex flex-col items-center text-center">
+      <div className="w-full bg-[#00853E] pb-20 px-6 flex flex-col items-center text-center">
         <h1 className="text-5xl font-black text-white tracking-tighter mb-2">
           Student Profile
         </h1>

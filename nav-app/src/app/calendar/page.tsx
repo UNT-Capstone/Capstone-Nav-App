@@ -124,9 +124,9 @@ export default function CalendarPage() {
   };
 
   return (
-    <main className="min-h-screen pt-32 pb-32 px-6 bg-[#f8fafc] flex flex-col items-center">
-      <div className="w-full max-w-2xl">
-        <h1 className="text-6xl font-black text-gray-900 tracking-tighter mb-10 text-center">
+    <main className="min-h-screen bg-gray-50 p-8 pt-8">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">
           My Schedule
         </h1>
 

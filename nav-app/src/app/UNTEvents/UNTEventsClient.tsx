@@ -289,13 +289,13 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
   const activeEvent = currentEventList.find((e) => e.id === activeEventId) || (filteredEvents.length > 0 ? filteredEvents[0] : null);
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 pt-32">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <p className="text-[#00853E] font-black uppercase tracking-widest text-sm animate-pulse">🦅 Fetching UNT Data...</p>
     </div>
   );
 
   return (
-    <main className="min-h-screen pt-32 pb-12 px-4 md:px-8 bg-gray-50 text-gray-900 font-sans relative z-0 overflow-hidden">
+    <main className="min-h-screen pb-12 px-4 md:px-8 bg-gray-50 text-gray-900 font-sans relative z-0 overflow-hidden pt-8">
       <div className="max-w-6xl mx-auto">
         <header className="mb-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-center gap-2 bg-gray-200/50 p-1.5 rounded-2xl w-fit">
