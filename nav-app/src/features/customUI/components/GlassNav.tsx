@@ -3,6 +3,13 @@ import Image from 'next/image';
 import { isAuth } from '@/src/lib/auth-utils';
 import { GlassNavProfile } from './GlassNavProfile'; // Correct sibling path
 
+/**
+ * GlassNavbar Component
+ * * A high-fidelity, translucent navigation bar for the UNT Navigator application.
+ * Features conditional rendering for authenticated users, including a custom
+ * Schedule link and profile management.
+ * * @returns {JSX.Element} The rendered navigation header.
+ */
 export default async function GlassNavbar() {
   const authenticated = await isAuth();
 

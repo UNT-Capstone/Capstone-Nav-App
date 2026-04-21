@@ -4,7 +4,7 @@ import { FaUserCircle } from 'react-icons/fa';
 import { Marker, Popup } from "react-leaflet";
 import ReactDOMServer from 'react-dom/server';
 import { divIcon } from 'leaflet';
-import { FlyToMarker } from "../../map/components/UNTLiveMapInner";
+import {FlyToMarker} from "../../map/components/UNTLiveMapInner";
 
 const iconMarkup = ReactDOMServer.renderToStaticMarkup(<FaUserCircle size={32} className="text-blue-400" />);
 const customIcon = divIcon({

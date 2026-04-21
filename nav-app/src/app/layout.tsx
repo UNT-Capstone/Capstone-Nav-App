@@ -11,7 +11,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="bg-gray-50 m-0 p-0">
         <TRPCReactProvider>
           <GlassNavbar />
-          <main className="w-screen h-screen overflow-hidden">{children}</main>
+         
+          <main className="w-screen min-h-screen pt-28">{children}</main>
           <Toaster />
         </TRPCReactProvider>
       </body>
