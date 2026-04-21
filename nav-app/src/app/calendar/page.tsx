@@ -6,6 +6,10 @@ import { useRouter } from "next/navigation";
 import { Plus, Loader2, Calendar, MapPin, Clock, Trash2, Navigation } from "lucide-react";
 import { addClass, getClasses, deleteClass } from "./actions";
 
+/**
+ * Options for the custom Day Picker UI. 
+ * Values match the shorthand used in the formatted time string.
+ */
 const DAY_OPTIONS = [
   { label: "M", value: "M" },
   { label: "T", value: "Tu" },
@@ -22,32 +26,55 @@ export default function CalendarPage() {
   const [buildings, setBuildings] = useState<any[]>([]);
   const [fetching, setFetching] = useState(true);
   const [adding, setAdding] = useState(false);
-
-  // State for the Day Picker UI
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   
+  /**
+   * Loads both the user's schedule and the UNT building list.
+   * Uses separate try/catch blocks so a database error doesn't 
+   * prevent the campus building dropdown from loading.
+   */
   const loadData = async () => {
     setFetching(true);
     try {
-      const [classData, buildingRes] = await Promise.all([
-        getClasses(),
-        fetch("/api/buildings")
-      ]);
-      setClasses(classData || []);
-      if (buildingRes.ok) setBuildings(await buildingRes.json());
+      // 1. Fetch user classes from Prisma (via Server Action)
+      try {
+        const classData = await getClasses();
+        setClasses(classData || []);
+      } catch (err) {
+        // Log the error but keep the app running
+        console.error("Database connection failed (Prisma):", err);
+        setClasses([]); 
+      }
+
+      // 2. Fetch hardcoded UNT building data from the local API route
+      const buildingRes = await fetch("/api/buildings");
+      if (buildingRes.ok) {
+        const buildingData = await buildingRes.json();
+        setBuildings(buildingData);
+      } else {
+        console.error("Failed to fetch building list from API.");
+      }
     } catch (err) {
-      console.error("Failed to load calendar data:", err);
+      console.error("General initialization error:", err);
     } finally {
       setFetching(false);
     }
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const toggleDay = (val: string) => {
-    setSelectedDays(prev => prev.includes(val) ? prev.filter(d => d !== val) : [...prev, val]);
+    setSelectedDays(prev => 
+      prev.includes(val) ? prev.filter(d => d !== val) : [...prev, val]
+    );
   };
 
+  /**
+   * Handles adding a new class. Formats the time string (e.g., "MWF 2:30 PM")
+   * before sending it to the database.
+   */
   async function handleAddClass(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (selectedDays.length === 0) return alert("Select at least one day!");
@@ -62,39 +89,31 @@ export default function CalendarPage() {
       return;
     }
 
-    // Parse "14:30" -> "2:30 PM"
+    // Convert 24h format (input type="time") to 12h format for the display string
     const [hours, mins] = rawTime.split(":");
     const h = parseInt(hours);
     const ampm = h >= 12 ? "PM" : "AM";
     const displayHours = h % 12 || 12;
-    
-    // Create the final time string: "MWF 2:30 PM"
     const formattedTime = `${selectedDays.join("")} ${displayHours}:${mins.padStart(2, '0')} ${ampm}`;
     
     formData.set("time", formattedTime);
 
     try {
       await addClass(formData);
-      
-      // RESET LOGIC: Manually clear inputs to avoid the "Invalid Value" browser bug
-      const nameInput = form.querySelector('input[name="name"]') as HTMLInputElement;
-      const timeInput = form.querySelector('input[name="rawTime"]') as HTMLInputElement;
-      if (nameInput) nameInput.value = "";
-      if (timeInput) timeInput.value = "12:00"; 
-      
-      setSelectedDays([]);
-      await loadData();
+      form.reset(); // Clear the form text inputs
+      setSelectedDays([]); // Clear the day picker
+      await loadData(); // Refresh the list
     } catch (err) {
-      console.error("Submission error:", err);
+      console.error("Submission failed:", err);
+      alert("Failed to add class. Check database connection.");
     } finally {
       setAdding(false);
     }
   }
 
-  // --- Navigate to building on the map ---
-  // Looks up the building's lat/lng from the already-loaded buildings list
-  // and passes them as URL params to /home so the map can draw a route.
-  // Falls back to location name if building not found (shouldn't happen).
+  /**
+   * Passes coordinates to the main map page to initiate navigation.
+   */
   const handleNavigate = (locationName: string) => {
     const building = buildings.find(b => b.name === locationName);
     if (building) {
@@ -111,6 +130,7 @@ export default function CalendarPage() {
           My Schedule
         </h1>
 
+        {/* Add Class Form */}
         <form onSubmit={handleAddClass} className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm mb-10 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input 
@@ -126,14 +146,16 @@ export default function CalendarPage() {
               defaultValue="" 
               className="px-5 py-3 rounded-2xl border border-gray-200 outline-none focus:ring-2 focus:ring-[#00853E] bg-white transition-all appearance-none"
             >
-              <option value="" disabled>Select Building</option>
+              <option value="" disabled>
+                {fetching ? "Loading UNT Buildings..." : "Select Building"}
+              </option>
               {buildings.map(b => (
                 <option key={b.name} value={b.name}>{b.name}</option>
               ))}
             </select>
           </div>
 
-          {/* DAY PICKER UI */}
+          {/* Custom Day Selection */}
           <div className="space-y-3">
             <p className="text-sm font-bold text-gray-500 ml-2">Select Days</p>
             <div className="flex flex-wrap gap-2">
@@ -154,7 +176,7 @@ export default function CalendarPage() {
             </div>
           </div>
 
-          {/* TIME PICKER UI */}
+          {/* Start Time Input */}
           <div className="space-y-3">
             <p className="text-sm font-bold text-gray-500 ml-2">Class Start Time</p>
             <input 
@@ -176,7 +198,7 @@ export default function CalendarPage() {
           </button>
         </form>
 
-        {/* CLASS LIST SECTION */}
+        {/* Display List of Classes */}
         <div className="space-y-4">
           {fetching ? (
             <div className="flex justify-center py-10">
@@ -198,8 +220,6 @@ export default function CalendarPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  {/* Navigate button: looks up building coordinates and passes
-                      them to /home as lat/lng so the map can draw a route */}
                   <button 
                     onClick={() => handleNavigate(cls.location)}
                     className="flex items-center gap-2 px-4 py-2 bg-[#00853E] text-white text-sm font-bold rounded-xl hover:bg-[#006b32] transition-all"
@@ -208,7 +228,7 @@ export default function CalendarPage() {
                   </button>
                   <button 
                     onClick={() => {
-                      if(confirm("Delete class?")) deleteClass(cls.id).then(loadData);
+                      if(confirm("Delete this class?")) deleteClass(cls.id).then(loadData);
                     }} 
                     className="p-3 text-red-300 hover:text-red-600 hover:bg-red-50 rounded-full transition-all"
                   >
@@ -219,7 +239,7 @@ export default function CalendarPage() {
             ))
           ) : (
             <div className="text-center py-20 bg-white/50 rounded-[2.5rem] border-2 border-dashed border-gray-200">
-              <p className="text-gray-400 font-bold">Empty schedule. Start by adding a class above.</p>
+              <p className="text-gray-400 font-bold">No classes found. Add your first class above!</p>
             </div>
           )}
         </div>
