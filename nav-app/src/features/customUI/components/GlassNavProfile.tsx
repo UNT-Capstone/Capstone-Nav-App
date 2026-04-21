@@ -64,6 +64,11 @@ export function GlassNavProfile() {
                 Friends
               </Link>
             </li>
+            <li>
+              <Link href="/calendar" className={menuItemClass} onClick={() => setIsOpen(false)}>
+                Schedule
+              </Link>
+            </li>
             
             <li className="mt-1 pt-1 border-t border-gray-100">
               <LogoutButton onClick={() => setIsOpen(false)} />
