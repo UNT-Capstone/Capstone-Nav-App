@@ -194,10 +194,10 @@ export default function UNTLiveMapInner() {
 
   return (
     <div className="h-screen w-screen relative">
-      {/* UI Overlays */}
-      {!destination && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[2000] w-[92vw] md:w-[420px]">
-          {!isPickingMode && <UNTSearchBar onSelect={setSelectedLocation} />}
+      {!isPickingMode && (
+        <div className="fixed top-20 md:top-28 left-1/2 -translate-x-1/2 z-[2000] w-[92vw] md:w-[420px] px-2 md:px-0">
+          <UNTSearchBar onSelect={setSelectedLocation} />
+
         </div>
       )}
 
