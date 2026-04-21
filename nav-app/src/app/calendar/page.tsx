@@ -68,7 +68,7 @@ export default function CalendarPage() {
     const ampm = h >= 12 ? "PM" : "AM";
     const displayHours = h % 12 || 12;
     
-    // Create the final string: "MWF 2:30 PM"
+    // Create the final time string: "MWF 2:30 PM"
     const formattedTime = `${selectedDays.join("")} ${displayHours}:${mins.padStart(2, '0')} ${ampm}`;
     
     formData.set("time", formattedTime);
@@ -90,6 +90,19 @@ export default function CalendarPage() {
       setAdding(false);
     }
   }
+
+  // --- Navigate to building on the map ---
+  // Looks up the building's lat/lng from the already-loaded buildings list
+  // and passes them as URL params to /home so the map can draw a route.
+  // Falls back to location name if building not found (shouldn't happen).
+  const handleNavigate = (locationName: string) => {
+    const building = buildings.find(b => b.name === locationName);
+    if (building) {
+      router.push(`/home?lat=${building.lat}&lng=${building.lng}`);
+    } else {
+      router.push(`/home?location=${encodeURIComponent(locationName)}`);
+    }
+  };
 
   return (
     <main className="min-h-screen pt-32 pb-32 px-6 bg-[#f8fafc] flex flex-col items-center">
@@ -163,7 +176,7 @@ export default function CalendarPage() {
           </button>
         </form>
 
-        {/* LIST SECTION */}
+        {/* CLASS LIST SECTION */}
         <div className="space-y-4">
           {fetching ? (
             <div className="flex justify-center py-10">
@@ -185,8 +198,10 @@ export default function CalendarPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  {/* Navigate button: looks up building coordinates and passes
+                      them to /home as lat/lng so the map can draw a route */}
                   <button 
-                    onClick={() => router.push(`/home?location=${encodeURIComponent(cls.location)}`)}
+                    onClick={() => handleNavigate(cls.location)}
                     className="flex items-center gap-2 px-4 py-2 bg-[#00853E] text-white text-sm font-bold rounded-xl hover:bg-[#006b32] transition-all"
                   >
                     <Navigation size={16} /> Navigate
