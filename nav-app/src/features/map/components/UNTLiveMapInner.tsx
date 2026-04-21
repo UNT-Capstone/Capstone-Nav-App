@@ -195,7 +195,7 @@ export default function UNTLiveMapInner() {
   return (
     <div className="h-screen w-screen relative">
       {!isPickingMode && (
-        <div className="fixed top-24 md:top-36 left-1/2 -translate-x-1/2 z-[2000] w-[92vw] md:w-[420px] px-2 md:px-0">
+        <div className="fixed top-32 md:top-36 left-1/2 -translate-x-1/2 z-[2000] w-[92vw] md:w-[420px] px-2 md:px-0">
           <UNTSearchBar onSelect={setSelectedLocation} />
 
         </div>
@@ -255,19 +255,19 @@ export default function UNTLiveMapInner() {
 
       {/* Directions Panel */}
       {destination && directions.length > 0 && (
-        <div className="md:absolute md:top-28 md:left-4 md:w-[460px] md:max-h-[70vh] fixed bottom-0 left-0 right-0 h-[50vh] bg-white shadow-2xl rounded-t-2xl md:rounded-xl z-[2000] flex flex-col">
-          <div className="bg-[#00853E] text-white p-4 font-bold rounded-t-xl md:rounded-t-xl">Directions</div>
-          <div className="overflow-y-auto p-4 space-y-2 text-sm flex-1">
+        <div className="md:absolute md:top-28 md:left-4 md:w-[460px] md:max-h-[70vh] fixed bottom-0 left-0 right-0 h-[35vh] md:h-[50vh] bg-white shadow-2xl rounded-t-2xl md:rounded-xl z-[2000] flex flex-col">
+          <div className="bg-[#00853E] text-white p-3 md:p-4 font-bold rounded-t-xl md:rounded-t-xl text-sm md:text-base">Directions</div>
+          <div className="overflow-y-auto p-3 md:p-4 space-y-2 text-sm flex-1">
             {/* Mobile: Show only current instruction prominently */}
             <div className="md:hidden">
               {directions[activeIndex] && (
-                <div className="p-3 bg-[#00853E]/10 border-l-4 border-[#00853E] rounded-lg mb-4">
-                  <div className="font-bold text-[#00853E] mb-1">Current Step:</div>
+                <div className="p-2 md:p-3 bg-[#00853E]/10 border-l-4 border-[#00853E] rounded-lg mb-3 md:mb-4">
+                  <div className="font-bold text-[#00853E] mb-1 text-sm">Current Step:</div>
                   <span className="font-bold mr-2">{activeIndex + 1}.</span> {directions[activeIndex].instruction}
                   <div className="text-gray-600 text-xs mt-1">{Math.round(directions[activeIndex].distance)} m</div>
                 </div>
               )}
-              <div className="text-center text-gray-500 text-xs mb-3 pb-2 border-b">Scroll for full directions ↓</div>
+              <div className="text-center text-gray-500 text-xs mb-2 md:mb-3 pb-2 border-b">Scroll for full directions ↓</div>
             </div>
             
             {/* Full directions list (always visible on desktop, scrollable on mobile) */}
@@ -278,8 +278,8 @@ export default function UNTLiveMapInner() {
               </div>
             ))}
           </div>
-          <div className="p-4 border-t">
-            <button onClick={handleEndRoute} className="w-full bg-red-600 text-white py-3 rounded-xl font-bold transition hover:bg-red-700">End Route</button>
+          <div className="p-3 md:p-4 border-t">
+            <button onClick={handleEndRoute} className="w-full bg-red-600 text-white py-2 md:py-3 rounded-xl font-bold transition hover:bg-red-700 text-sm md:text-base">End Route</button>
           </div>
         </div>
       )}
