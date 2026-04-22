@@ -305,7 +305,8 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <input type="text" placeholder="Search events..." className="pl-4 pr-4 py-3 rounded-xl border border-gray-200 text-sm outline-none w-full md:w-64 bg-white shadow-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-            {view === "user" && <button onClick={() => setShowForm(true)} className="bg-[#00853E] text-white px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#006a31] transition-all">+ Create Post</button>}
+            {(view === "user" || view === "my-events") && <button onClick={() => setShowForm(true)} className="bg-[#00853E] text-white px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#006a31] transition-all">+ Create Post</button>}
+            
           </div>
         </header>
 
@@ -411,8 +412,9 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
       </div>
 
       {showForm && (
+        // <div className="fixed inset-0 top-[60%] bg-black/60 z-[2001] flex flex-col items-center justify-start pt-20 md:pt-32 p-3 md:p-4 overflow-y-auto">
         <div className="fixed inset-0 bg-black/60 z-[2001] flex flex-col items-center justify-start pt-20 md:pt-32 p-3 md:p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl md:rounded-[2.5rem] p-4 md:p-8 w-full max-w-sm md:max-w-lg shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-xl mt-10 md:rounded-[2.5rem] p-4 md:p-8 w-full max-w-sm md:max-w-lg shadow-2xl animate-in zoom-in-95 duration-200">
             <h3 className="text-lg md:text-3xl font-black text-[#00853E] uppercase mb-4 md:mb-6 tracking-tighter">
               {isEditing ? "Edit Post" : "New Post"}
             </h3>
