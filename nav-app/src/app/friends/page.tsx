@@ -219,9 +219,6 @@ export default function FriendsPage() {
                         <h3 className="font-semibold text-gray-900">{friend.name}</h3>
                         <p className="text-gray-600">{friend.email}</p>
                       </div>
-                      <Button variant="outline" size="sm">
-                        Message
-                      </Button>
                     </div>
                   </Card>
                 ))
@@ -300,21 +297,21 @@ export default function FriendsPage() {
           <Button
             variant={activeTab === 'find' ? 'default' : 'outline'}
             onClick={() => handleTabChange('find')}
-            className="flex-1"
+            className={`flex-1 ${activeTab === 'find' ? 'bg-[#00853E] text-white hover:bg-[#006a31]' : ''}`}
           >
             Find Friends
           </Button>
           <Button
             variant={activeTab === 'friends' ? 'default' : 'outline'}
             onClick={() => handleTabChange('friends')}
-            className="flex-1"
+            className={`flex-1 ${activeTab === 'friends' ? 'bg-[#00853E] text-white hover:bg-[#006a31]' : ''}`}
           >
             My Friends
           </Button>
           <Button
             variant={activeTab === 'requests' ? 'default' : 'outline'}
             onClick={() => handleTabChange('requests')}
-            className="flex-1"
+            className={`flex-1 ${activeTab === 'requests' ? 'bg-[#00853E] text-white hover:bg-[#006a31]' : ''}`}
           >
             Requests
           </Button>

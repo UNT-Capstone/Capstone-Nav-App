@@ -41,7 +41,7 @@ export function GlassNavProfile() {
 
       {/* Matte Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute right-0 mt-2 w-48 z-[2100] animate-in fade-in slide-in-from-top-2 duration-200">
           <ul className="grid gap-1 p-1.5 rounded-xl shadow-xl border border-gray-200 
                          bg-white/98 backdrop-blur-sm">
             <li>
