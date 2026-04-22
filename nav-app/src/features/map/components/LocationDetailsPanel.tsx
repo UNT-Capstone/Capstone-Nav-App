@@ -27,14 +27,15 @@ export default function LocationDetailsPanel({
 
     const checkFavoriteStatus = async () => {
       try {
-        const response = await fetch("/api/trpc/isFavoriteLocation", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        const input = encodeURIComponent(
+          JSON.stringify({
             name: location.name,
             lat: location.lat,
             lng: location.lng,
           }),
+        );
+        const response = await fetch(`/api/trpc/isFavoriteLocation?input=${input}`, {
+          method: "GET",
         });
 
         if (!response.ok) {

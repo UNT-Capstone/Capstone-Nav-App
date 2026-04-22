@@ -25,11 +25,13 @@ export const createTRPCContext = cache(async () => {
     };
   }
 });
+
+type TRPCContext = Awaited<ReturnType<typeof createTRPCContext>>;
 // Avoid exporting the entire t-object
 // since it's not very descriptive.
 // For instance, the use of a t variable
 // is common in i18n libraries.
-const t = initTRPC.create({
+const t = initTRPC.context<TRPCContext>().create({
   /**
    * @see https://trpc.io/docs/server/data-transformers
    */
@@ -40,12 +42,20 @@ export const createTRPCRouter = t.router;
 export const createCallerFactory = t.createCallerFactory;
 export const baseProcedure = t.procedure;
 export const protectedProcedure = baseProcedure.use(async ({ ctx, next}) => {
-  if (!ctx.auth || !ctx.userId) {
+  const { auth: session, userId } = ctx;
+
+  if (!session || !userId) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
       message: "Unauthorized",
     });
   }
 
-  return next({ ctx });
+  return next({
+    ctx: {
+      ...ctx,
+      auth: session,
+      userId,
+    },
+  });
 })
