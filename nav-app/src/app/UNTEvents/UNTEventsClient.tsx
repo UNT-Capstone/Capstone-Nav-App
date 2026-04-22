@@ -3,50 +3,58 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTRPC } from "@/src/trpc/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 // --- INTERFACES ---
 interface UNTFriend {
   id: string;
   name: string;
-  image?: string;
+  image?: string | null;
 }
 
-interface UNTComment {
-  id: number;
-  parentId?: number; 
-  user: string; 
+interface DBComment {
+  id: string;
+  parentId: string | null;
   text: string;
-  timestamp: string;
+  eventId: string;
+  createdAt: Date | string;
+  user: { id: string; name: string; image?: string | null };
 }
 
-interface UNTEvent {
+interface DBEvent {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  date: Date | string;
+  lat: number;
+  lng: number;
+  createdById: string;
+  createdBy: { id: string; name: string; image?: string | null };
+  taggedFriends: { id: string; userId: string; user: UNTFriend }[];
+}
+
+// Official UNT calendar event shape
+interface UNTOfficialEvent {
   id: number;
   title: string;
   description_text: string;
   location_name: string;
   localist_url?: string;
   first_date: string;
-  isOfficial?: boolean; 
-  createdBy?: string; 
-  taggedFriends?: UNTFriend[];
-  filters: {
-    event_types?: { name: string }[];
-  };
-  geo?: {
-    latitude: string;
-    longitude: string;
-  };
+  filters: { event_types?: { name: string }[] };
+  geo?: { latitude: string; longitude: string };
 }
 
 interface CommentNodeProps {
-  comment: UNTComment;
-  allComments: UNTComment[];
+  comment: DBComment;
+  allComments: DBComment[];
   level: number;
-  onReply: (comment: UNTComment) => void;
+  onReply: (comment: DBComment) => void;
+  currentUserId: string;
 }
 
-const CommentNode: React.FC<CommentNodeProps> = ({ comment, allComments, level, onReply }) => {
+const CommentNode: React.FC<CommentNodeProps> = ({ comment, allComments, level, onReply, currentUserId }) => {
   const children = allComments.filter(c => c.parentId === comment.id);
   const indentClass = level > 0 ? "ml-6 md:ml-10" : "";
 
@@ -54,26 +62,29 @@ const CommentNode: React.FC<CommentNodeProps> = ({ comment, allComments, level, 
     <div className={`space-y-3 ${indentClass}`}>
       <div className={`p-4 rounded-2xl border transition-all ${level === 0 ? "bg-gray-50 border-gray-100" : "bg-white border-l-4 border-[#00853E] shadow-sm"}`}>
         <p className="text-[#00853E] font-black text-[9px] uppercase mb-1">
-          {comment.user} <span className="text-gray-300 font-normal ml-2">{comment.timestamp}</span>
+          {comment.user.name}
+          <span className="text-gray-300 font-normal ml-2">
+            {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
         </p>
         <p className="text-gray-700 text-sm leading-snug">{comment.text}</p>
-        <button 
+        <button
           onClick={() => onReply(comment)}
           className="mt-2 text-[9px] font-black uppercase text-gray-400 hover:text-[#00853E]"
         >
           ↩ Reply
         </button>
       </div>
-      
       {children.length > 0 && (
         <div className="space-y-3">
           {children.map(child => (
-            <CommentNode 
-              key={child.id} 
-              comment={child} 
-              allComments={allComments} 
-              level={level + 1} 
+            <CommentNode
+              key={child.id}
+              comment={child}
+              allComments={allComments}
+              level={level + 1}
               onReply={onReply}
+              currentUserId={currentUserId}
             />
           ))}
         </div>
@@ -85,61 +96,119 @@ const CommentNode: React.FC<CommentNodeProps> = ({ comment, allComments, level, 
 // --- MAIN COMPONENT ---
 interface UNTEventsPageProps {
   initialUserName: string;
+  currentUserId: string; // pass the real DB user id from session
 }
 
-const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
+const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentUserId }) => {
   const router = useRouter();
   const trpc = useTRPC();
-  
+  const queryClient = useQueryClient();
+
   // --- STATE ---
   const [view, setView] = useState<"official" | "user" | "my-events">("official");
-  const [events, setEvents] = useState<UNTEvent[]>([]);
-  const [userEvents, setUserEvents] = useState<UNTEvent[]>([]);
-  const [activeEventId, setActiveEventId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [currentUser] = useState({ name: initialUserName || "Mean Green Eagle" });
+  const [officialEvents, setOfficialEvents] = useState<UNTOfficialEvent[]>([]);
+  const [activeEventId, setActiveEventId] = useState<string | number | null>(null);
+  const [officialLoading, setOfficialLoading] = useState(true);
 
   // --- EDITING STATE ---
   const [isEditing, setIsEditing] = useState(false);
-  const [editEventId, setEditEventId] = useState<number | null>(null);
+  const [editEventId, setEditEventId] = useState<string | null>(null);
 
   // --- FRIEND TAGGING STATE ---
   const [showFriendPicker, setShowFriendPicker] = useState(false);
   const [selectedFriends, setSelectedFriends] = useState<UNTFriend[]>([]);
 
-  const { data: friends = [] } = useQuery(
-    trpc.getFriends.queryOptions(undefined, {
-      enabled: true,
-    })
-  );
-
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ 
-    title: "", 
-    date: "", 
-    time: "", 
-    location: "", 
+  const [formData, setFormData] = useState({
+    title: "",
+    date: "",
+    time: "",
+    location: "",
     description: "",
-    lat: "33.2108",
-    lng: "-97.1459"
+    lat: 33.2108,
+    lng: -97.1459
   });
 
   const [searchQuery, setSearchQuery] = useState("");
   const [showForum, setShowForum] = useState(false);
-  const [comments, setComments] = useState<Record<number, UNTComment[]>>({});
   const [newComment, setNewComment] = useState("");
-  const [replyingTo, setReplyingTo] = useState<UNTComment | null>(null);
+  const [replyingTo, setReplyingTo] = useState<DBComment | null>(null);
 
-  // --- PERSISTENCE ---
+  // ─── tRPC QUERIES ──────────────────────────────────────────────────────────
+
+  const { data: friends = [] } = useQuery(
+    trpc.getFriends.queryOptions()
+  );
+
+  const { data: communityEvents = [], isLoading: communityLoading } = useQuery(
+    trpc.getCommunityEvents.queryOptions()
+  );
+
+  // Only fetch comments when we're viewing a community/user event (string id) and forum is open
+  const activeIsDB = typeof activeEventId === 'string';
+
+  const { data: comments = [] } = useQuery(
+    trpc.getComments.queryOptions(
+      { eventId: activeEventId as string },
+      { enabled: activeIsDB && showForum }
+    )
+  );
+
+  // ─── tRPC MUTATIONS ────────────────────────────────────────────────────────
+
+  const createEvent = useMutation(
+    trpc.createCommunityEvent.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: trpc.getCommunityEvents.queryKey() });
+        closeForm();
+      }
+    })
+  );
+
+  const updateEvent = useMutation(
+    trpc.updateCommunityEvent.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: trpc.getCommunityEvents.queryKey() });
+        closeForm();
+      }
+    })
+  );
+
+  const postCommentMutation = useMutation(
+    trpc.postComment.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: trpc.getComments.queryKey({ eventId: activeEventId as string })
+        });
+        setNewComment("");
+        setReplyingTo(null);
+      }
+    })
+  );
+
+  // ─── FETCH OFFICIAL UNT EVENTS ─────────────────────────────────────────────
   useEffect(() => {
-    const savedComments = localStorage.getItem("unt_event_discussions");
-    const savedUserEvents = localStorage.getItem("unt_user_events");
-    const savedDraft = localStorage.getItem("unt_event_draft");
-    const pickedCoord = localStorage.getItem("unt_last_picked_coord");
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch("https://calendar.unt.edu/api/2/events?days=30&pp=50");
+        const data = await response.json();
+        const eventList: UNTOfficialEvent[] = data.events.map((item: any) => item.event);
+        const unique = Array.from(new Map(eventList.map(e => [e.id, e])).values());
+        setOfficialEvents(unique as UNTOfficialEvent[]);
+        if (unique.length > 0) setActiveEventId((unique[0] as UNTOfficialEvent).id);
+      } catch (err) {
+        console.error("Fetch error:", err);
+      } finally {
+        setOfficialLoading(false);
+      }
+    };
+    fetchEvents();
+  }, []);
 
-    if (savedComments) setComments(JSON.parse(savedComments));
-    if (savedUserEvents) setUserEvents(JSON.parse(savedUserEvents));
-    
+  // Pick-on-map flow: restore draft from localStorage after redirect back
+  useEffect(() => {
+    const pickedCoord = localStorage.getItem("unt_last_picked_coord");
+    const savedDraft = localStorage.getItem("unt_event_draft");
     if (pickedCoord) {
       const { lat, lng } = JSON.parse(pickedCoord);
       const draft = savedDraft ? JSON.parse(savedDraft) : formData;
@@ -151,36 +220,12 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
     }
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("unt_event_discussions", JSON.stringify(comments));
-  }, [comments]);
+  // ─── HANDLERS ──────────────────────────────────────────────────────────────
 
-  useEffect(() => {
-    localStorage.setItem("unt_user_events", JSON.stringify(userEvents));
-  }, [userEvents]);
-
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const response = await fetch("https://calendar.unt.edu/api/2/events?days=30&pp=50");
-        const data = await response.json();
-        const eventList: UNTEvent[] = data.events.map((item: any) => ({ ...item.event, isOfficial: true }));
-        const uniqueEvents = Array.from(new Map(eventList.map((e: any) => [e.id, e])).values());
-        setEvents(uniqueEvents as UNTEvent[]);
-        if (uniqueEvents.length > 0) setActiveEventId((uniqueEvents[0] as UNTEvent).id);
-        setLoading(false);
-      } catch (err) {
-        console.error("Fetch error:", err);
-        setLoading(false);
-      }
-    };
-    fetchEvents();
-  }, []);
-
-  // --- HANDLERS ---
-  const handleGoToMap = (event: UNTEvent) => {
-    const lat = event.geo?.latitude || "33.2108";
-    const lng = event.geo?.longitude || "-97.1459";
+  const handleGoToMap = (event: UNTOfficialEvent | DBEvent) => {
+    const isOfficial = 'first_date' in event;
+    const lat = isOfficial ? (event.geo?.latitude ?? "33.2108") : event.lat;
+    const lng = isOfficial ? (event.geo?.longitude ?? "-97.1459") : event.lng;
     router.push(`/home?event=${encodeURIComponent(event.title)}&lat=${lat}&lng=${lng}`);
   };
 
@@ -190,54 +235,52 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
     router.push("/home");
   };
 
-  const openEditModal = (event: UNTEvent) => {
+  const openEditModal = (event: DBEvent) => {
+    const d = new Date(event.date);
+    const date = d.toISOString().split('T')[0];
+    const time = d.toTimeString().substring(0, 5);
     setIsEditing(true);
     setEditEventId(event.id);
-    const [date, timeWithSeconds] = event.first_date.split('T');
     setFormData({
       title: event.title,
-      date: date,
-      time: timeWithSeconds.substring(0, 5),
-      location: event.location_name,
-      description: event.description_text,
-      lat: event.geo?.latitude || "33.2108",
-      lng: event.geo?.longitude || "-97.1459"
+      date,
+      time,
+      location: event.location,
+      description: event.description,
+      lat: event.lat,
+      lng: event.lng
     });
-    setSelectedFriends(event.taggedFriends || []);
+    setSelectedFriends(event.taggedFriends.map(t => t.user));
     setShowForm(true);
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (isEditing && editEventId) {
-      setUserEvents(prev => prev.map(ev => ev.id === editEventId ? {
-        ...ev,
-        title: formData.title,
-        first_date: `${formData.date}T${formData.time}:00`,
-        location_name: formData.location,
-        description_text: formData.description,
-        taggedFriends: selectedFriends,
-        geo: { latitude: formData.lat, longitude: formData.lng }
-      } : ev));
-    } else {
-      const newEvent: UNTEvent = {
-        id: Date.now(),
-        title: formData.title,
-        first_date: `${formData.date}T${formData.time}:00`,
-        location_name: formData.location,
-        description_text: formData.description,
-        createdBy: currentUser.name,
-        taggedFriends: selectedFriends,
-        isOfficial: false,
-        filters: { event_types: [{ name: "Student Post" }] },
-        geo: { latitude: formData.lat, longitude: formData.lng }
-      };
-      setUserEvents([newEvent, ...userEvents]);
-      setActiveEventId(newEvent.id);
-    }
+    const dateISO = `${formData.date}T${formData.time}`;
+    const taggedFriendIds = selectedFriends.map(f => f.id);
 
-    closeForm();
+    if (isEditing && editEventId) {
+      updateEvent.mutate({
+        id: editEventId,
+        title: formData.title,
+        description: formData.description,
+        location: formData.location,
+        date: dateISO,
+        lat: formData.lat,
+        lng: formData.lng,
+        taggedFriendIds
+      });
+    } else {
+      createEvent.mutate({
+        title: formData.title,
+        description: formData.description,
+        location: formData.location,
+        date: dateISO,
+        lat: formData.lat,
+        lng: formData.lng,
+        taggedFriendIds
+      });
+    }
   };
 
   const closeForm = () => {
@@ -245,52 +288,51 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
     setIsEditing(false);
     setEditEventId(null);
     setSelectedFriends([]);
-    setFormData({ title: "", date: "", time: "", location: "", description: "", lat: "33.2108", lng: "-97.1459" });
+    setFormData({ title: "", date: "", time: "", location: "", description: "", lat: 33.2108, lng: -97.1459 });
   };
 
   const handlePostComment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim() || !activeEventId) return;
-
-    const comment: UNTComment = {
-      id: Date.now(),
-      parentId: replyingTo?.id,
-      user: currentUser.name,
+    if (!newComment.trim() || !activeEventId || !activeIsDB) return;
+    postCommentMutation.mutate({
+      eventId: activeEventId as string,
       text: newComment,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    setComments(prev => ({ ...prev, [activeEventId]: [...(prev[activeEventId] || []), comment] }));
-    setNewComment("");
-    setReplyingTo(null);
+      parentId: replyingTo?.id ?? undefined
+    });
   };
 
-  // --- FILTERED DATA LOGIC ---
+  // ─── FILTERED DATA LOGIC ───────────────────────────────────────────────────
+
+  // "My Events": events I created OR events where I was tagged
   const myInvolvedEvents = useMemo(() => {
-    const allEvents = [...events, ...userEvents];
-    return allEvents.filter(ev => 
-      ev.createdBy === currentUser.name || 
-      ev.taggedFriends?.some(f => f.name === currentUser.name)
+    return communityEvents.filter(ev =>
+      ev.createdById === currentUserId ||
+      ev.taggedFriends.some(t => t.userId === currentUserId)
     );
-  }, [events, userEvents, currentUser.name]);
+  }, [communityEvents, currentUserId]);
 
   const currentEventList = useMemo(() => {
-    if (view === "official") return events;
-    if (view === "user") return userEvents;
+    if (view === "official") return officialEvents;
+    if (view === "user") return communityEvents;
     return myInvolvedEvents;
-  }, [view, events, userEvents, myInvolvedEvents]);
+  }, [view, officialEvents, communityEvents, myInvolvedEvents]);
 
   const filteredEvents = useMemo(() => {
-    return currentEventList.filter((event) => 
+    return currentEventList.filter(event =>
       event.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [currentEventList, searchQuery]);
 
-  const activeEvent = currentEventList.find((e) => e.id === activeEventId) || (filteredEvents.length > 0 ? filteredEvents[0] : null);
+  const activeEvent = filteredEvents.find(e => e.id === activeEventId) ?? filteredEvents[0] ?? null;
+
+  const isOfficialEvent = (e: any): e is UNTOfficialEvent => typeof e?.id === 'number';
+  const isDBEvent = (e: any): e is DBEvent => typeof e?.id === 'string';
+
+  const loading = officialLoading || communityLoading;
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-[#00853E] font-black uppercase tracking-widest text-sm animate-pulse">🦅 Fetching UNT Data...</p>
+      <p className="text-[#00853E] font-black uppercase tracking-widest text-sm animate-pulse">🦅 Fetching UNT Data...</p>
     </div>
   );
 
@@ -305,165 +347,245 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <input type="text" placeholder="Search events..." className="pl-4 pr-4 py-3 rounded-xl border border-gray-200 text-sm outline-none w-full md:w-64 bg-white shadow-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-            {(view === "user" || view === "my-events") && <button onClick={() => setShowForm(true)} className="bg-[#00853E] text-white px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#006a31] transition-all">+ Create Post</button>}
-            
+            {(view === "user" || view === "my-events") && (
+              <button onClick={() => setShowForm(true)} className="bg-[#00853E] text-white px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#006a31] transition-all">+ Create Post</button>
+            )}
           </div>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-12 bg-white rounded-[2.5rem] shadow-2xl overflow-hidden md:h-[calc(100vh-340px)] border border-gray-100">
+          {/* Event List */}
           <div className="md:col-span-4 border-r overflow-y-auto bg-[#fafafa]">
             {filteredEvents.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-12 text-center h-full">
-                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">
-                        {view === "my-events" ? "Nothing scheduled yet" : "No results found"}
-                    </p>
-                    {view === "my-events" && <p className="text-[9px] text-gray-400 mt-2">Tag friends or create your own events to see them here.</p>}
-                </div>
+              <div className="flex flex-col items-center justify-center p-12 text-center h-full">
+                <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                  {view === "my-events" ? "Nothing scheduled yet" : "No results found"}
+                </p>
+                {view === "my-events" && (
+                  <p className="text-[9px] text-gray-400 mt-2">Tag friends or create your own events to see them here.</p>
+                )}
+              </div>
             ) : filteredEvents.map((event) => (
-              <button key={event.id} onClick={() => { setActiveEventId(event.id); setShowForum(false); setReplyingTo(null); }} className={`w-full text-left p-6 border-b transition-all relative ${activeEventId === event.id ? "bg-white border-l-[10px] border-l-[#00853E] shadow-inner" : "opacity-60 hover:opacity-100"}`}>
+              <button
+                key={event.id}
+                onClick={() => { setActiveEventId(event.id); setShowForum(false); setReplyingTo(null); }}
+                className={`w-full text-left p-6 border-b transition-all relative ${activeEventId === event.id ? "bg-white border-l-[10px] border-l-[#00853E] shadow-inner" : "opacity-60 hover:opacity-100"}`}
+              >
                 <div className="flex justify-between items-center mb-1">
-                  <p className="text-[10px] font-black text-[#00853E] uppercase">{new Date(event.first_date).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}</p>
-                  {event.isOfficial && <span className="bg-green-100 text-[#00853E] text-[8px] px-1.5 py-0.5 rounded font-black tracking-tighter">✓ OFFICIAL</span>}
+                  <p className="text-[10px] font-black text-[#00853E] uppercase">
+                    {isOfficialEvent(event)
+                      ? new Date(event.first_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                      : new Date((event as DBEvent).date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                    }
+                  </p>
+                  {isOfficialEvent(event) && (
+                    <span className="bg-green-100 text-[#00853E] text-[8px] px-1.5 py-0.5 rounded font-black tracking-tighter">✓ OFFICIAL</span>
+                  )}
                 </div>
                 <h3 className="font-bold leading-tight text-gray-800 line-clamp-2">{event.title}</h3>
-                <p className="text-xs text-gray-500 mt-2 truncate italic">📍 {event.location_name}</p>
+                <p className="text-xs text-gray-500 mt-2 truncate italic">
+                  📍 {isOfficialEvent(event) ? event.location_name : (event as DBEvent).location}
+                </p>
               </button>
             ))}
           </div>
 
+          {/* Event Detail */}
           <div className="md:col-span-8 p-6 md:p-12 overflow-y-auto bg-white flex flex-col relative">
             {activeEvent ? (
               <div className="h-full flex flex-col animate-in fade-in slide-in-from-bottom-4">
                 <div className="mb-6 flex flex-wrap gap-2 items-center">
-                  {activeEvent.isOfficial ? (
+                  {isOfficialEvent(activeEvent) ? (
                     <span className="bg-[#00853E] text-white text-[9px] px-3 py-1.5 rounded-full font-black tracking-widest">🦅 VERIFIED OFFICIAL UNT EVENT</span>
                   ) : (
                     <>
-                      <span className="bg-gray-100 text-gray-600 text-[9px] px-3 py-1.5 rounded-full font-black tracking-widest">👤 POSTED BY: {activeEvent.createdBy}</span>
-                      {activeEvent.taggedFriends?.map(friend => (
-                        <span key={friend.id} className="bg-green-50 text-[#00853E] text-[9px] px-3 py-1.5 rounded-full font-black tracking-widest border border-green-100">🤝 WITH {friend.name.toUpperCase()}</span>
+                      <span className="bg-gray-100 text-gray-600 text-[9px] px-3 py-1.5 rounded-full font-black tracking-widest">
+                        👤 POSTED BY: {(activeEvent as DBEvent).createdBy.name}
+                      </span>
+                      {(activeEvent as DBEvent).taggedFriends.map(tag => (
+                        <span key={tag.id} className="bg-green-50 text-[#00853E] text-[9px] px-3 py-1.5 rounded-full font-black tracking-widest border border-green-100">
+                          🤝 WITH {tag.user.name.toUpperCase()}
+                        </span>
                       ))}
-                      {activeEvent.createdBy === currentUser.name && (
-                        <button onClick={() => openEditModal(activeEvent)} className="ml-auto text-[9px] font-black text-gray-400 hover:text-[#00853E] uppercase tracking-widest underline underline-offset-4 decoration-2">
+                      {(activeEvent as DBEvent).createdById === currentUserId && (
+                        <button
+                          onClick={() => openEditModal(activeEvent as DBEvent)}
+                          className="ml-auto text-[9px] font-black text-gray-400 hover:text-[#00853E] uppercase tracking-widest underline underline-offset-4 decoration-2"
+                        >
                           Edit Post
                         </button>
                       )}
                     </>
                   )}
                 </div>
+
                 <h2 className="text-3xl md:text-5xl font-black mb-8 text-gray-900 tracking-tighter leading-tight">{activeEvent.title}</h2>
+
                 <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 mb-10 flex items-center gap-6">
-                    <div className="text-center border-r pr-6 border-gray-200">
-                        <p className="text-xs font-black text-[#00853E] uppercase">{new Date(activeEvent.first_date).toLocaleDateString(undefined, {month: 'short'})}</p>
-                        <p className="text-2xl font-black text-gray-900">{new Date(activeEvent.first_date).toLocaleDateString(undefined, {day: 'numeric'})}</p>
-                    </div>
-                    <div>
-                        <p className="text-sm font-black text-gray-800 uppercase">Location</p>
-                        <p className="text-sm text-gray-500">{activeEvent.location_name || "UNT Campus"}</p>
-                    </div>
+                  <div className="text-center border-r pr-6 border-gray-200">
+                    {isOfficialEvent(activeEvent) ? (
+                      <>
+                        <p className="text-xs font-black text-[#00853E] uppercase">{new Date(activeEvent.first_date).toLocaleDateString(undefined, { month: 'short' })}</p>
+                        <p className="text-2xl font-black text-gray-900">{new Date(activeEvent.first_date).toLocaleDateString(undefined, { day: 'numeric' })}</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xs font-black text-[#00853E] uppercase">{new Date((activeEvent as DBEvent).date).toLocaleDateString(undefined, { month: 'short' })}</p>
+                        <p className="text-2xl font-black text-gray-900">{new Date((activeEvent as DBEvent).date).toLocaleDateString(undefined, { day: 'numeric' })}</p>
+                      </>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-gray-800 uppercase">Location</p>
+                    <p className="text-sm text-gray-500">
+                      {isOfficialEvent(activeEvent) ? activeEvent.location_name : (activeEvent as DBEvent).location || "UNT Campus"}
+                    </p>
+                  </div>
                 </div>
+
                 <div className="prose prose-lg text-gray-600 flex-grow leading-relaxed mb-10">
-                    {activeEvent.description_text ? activeEvent.description_text.replace(/<[^>]*>?/gm, "") : "Join fellow Mean Green students for this event!"}
+                  {isOfficialEvent(activeEvent)
+                    ? (activeEvent.description_text?.replace(/<[^>]*>?/gm, "") || "Join fellow Mean Green students for this event!")
+                    : ((activeEvent as DBEvent).description || "Join fellow Mean Green students for this event!")
+                  }
                 </div>
+
                 <div className="flex flex-wrap gap-4 pt-10 border-t mt-auto">
-                  <button onClick={() => setShowForum(true)} className="px-8 py-5 bg-white text-gray-900 border-2 border-gray-900 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-gray-900 hover:text-white transition-all shadow-md">
-                    💬 Discussion ({(comments[activeEventId!] || []).length})
-                  </button>
-                  <button onClick={() => handleGoToMap(activeEvent)} className="px-8 py-5 bg-[#00853E] text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex-grow text-center hover:bg-[#006a31] shadow-lg transition-all">
+                  {isDBEvent(activeEvent) && (
+                    <button
+                      onClick={() => setShowForum(true)}
+                      className="px-8 py-5 bg-white text-gray-900 border-2 border-gray-900 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-gray-900 hover:text-white transition-all shadow-md"
+                    >
+                      💬 Discussion
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleGoToMap(activeEvent as any)}
+                    className="px-8 py-5 bg-[#00853E] text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex-grow text-center hover:bg-[#006a31] shadow-lg transition-all"
+                  >
                     🗺️ Route on Map
                   </button>
                 </div>
 
-                {showForum && (
+                {/* Discussion Forum Overlay */}
+                {showForum && isDBEvent(activeEvent) && (
                   <div className="absolute inset-0 bg-white z-20 p-8 flex flex-col animate-in slide-in-from-right duration-300">
                     <div className="flex justify-between items-center mb-8 pb-4 border-b">
-                      <h3 className="text-2xl font-black uppercase text-[#00853E]">Deep Conversation</h3>
+                      <h3 className="text-2xl font-black uppercase text-[#00853E]">Discussion</h3>
                       <button onClick={() => { setShowForum(false); setReplyingTo(null); }} className="font-black text-gray-400 uppercase text-xs hover:text-black">✕ Close</button>
                     </div>
                     <div className="flex-grow overflow-y-auto space-y-6 mb-6 pr-2">
-                      {(comments[activeEventId!] || []).length === 0 ? (
+                      {comments.length === 0 ? (
                         <p className="text-gray-400 italic text-center py-20">No messages yet. Start the buzz!</p>
                       ) : (
-                        comments[activeEventId!].filter(c => !c.parentId).map(root => (
-                          <CommentNode key={root.id} comment={root} allComments={comments[activeEventId!]} level={0} onReply={setReplyingTo} />
+                        comments.filter(c => !c.parentId).map(root => (
+                          <CommentNode
+                            key={root.id}
+                            comment={root}
+                            allComments={comments}
+                            level={0}
+                            onReply={setReplyingTo}
+                            currentUserId={currentUserId}
+                          />
                         ))
                       )}
                     </div>
                     <form onSubmit={handlePostComment} className="flex flex-col gap-2">
-                        {replyingTo && (
-                          <div className="flex justify-between items-center bg-green-50 px-4 py-2 rounded-t-xl border-t border-x border-green-100">
-                            <p className="text-[10px] text-[#00853E] font-bold italic">Replying to {replyingTo.user}...</p>
-                            <button type="button" onClick={() => setReplyingTo(null)} className="text-[10px] font-black text-gray-400">✕ CANCEL</button>
-                          </div>
-                        )}
-                        <div className="flex gap-2">
-                          <input value={newComment} onChange={e => setNewComment(e.target.value)} placeholder={replyingTo ? "Write your nested reply..." : "Type a message..."} className={`flex-grow bg-gray-100 p-5 rounded-2xl outline-none text-sm focus:ring-2 focus:ring-[#00853E] ${replyingTo ? 'rounded-tl-none border-l-2 border-[#00853E]' : ''}`} />
-                          <button type="submit" className="bg-[#00853E] text-white px-8 rounded-2xl font-black uppercase text-[10px]">Send</button>
+                      {replyingTo && (
+                        <div className="flex justify-between items-center bg-green-50 px-4 py-2 rounded-t-xl border-t border-x border-green-100">
+                          <p className="text-[10px] text-[#00853E] font-bold italic">Replying to {replyingTo.user.name}...</p>
+                          <button type="button" onClick={() => setReplyingTo(null)} className="text-[10px] font-black text-gray-400">✕ CANCEL</button>
                         </div>
+                      )}
+                      <div className="flex gap-2">
+                        <input
+                          value={newComment}
+                          onChange={e => setNewComment(e.target.value)}
+                          placeholder={replyingTo ? "Write your nested reply..." : "Type a message..."}
+                          className={`flex-grow bg-gray-100 p-5 rounded-2xl outline-none text-sm focus:ring-2 focus:ring-[#00853E] ${replyingTo ? 'rounded-tl-none border-l-2 border-[#00853E]' : ''}`}
+                        />
+                        <button
+                          type="submit"
+                          disabled={postCommentMutation.isPending}
+                          className="bg-[#00853E] text-white px-8 rounded-2xl font-black uppercase text-[10px] disabled:opacity-50"
+                        >
+                          {postCommentMutation.isPending ? '...' : 'Send'}
+                        </button>
+                      </div>
                     </form>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-gray-300 italic"><p>Select an event to view full details</p></div>
+              <div className="flex flex-col items-center justify-center h-full text-gray-300 italic">
+                <p>Select an event to view full details</p>
+              </div>
             )}
           </div>
         </div>
       </div>
 
+      {/* Create / Edit Event Modal */}
       {showForm && (
-        // <div className="fixed inset-0 top-[60%] bg-black/60 z-[2001] flex flex-col items-center justify-start pt-20 md:pt-32 p-3 md:p-4 overflow-y-auto">
         <div className="fixed inset-0 bg-black/60 z-[2001] flex flex-col items-center justify-start pt-20 md:pt-32 p-3 md:p-4 overflow-y-auto">
           <div className="bg-white rounded-xl mt-10 md:rounded-[2.5rem] p-4 md:p-8 w-full max-w-sm md:max-w-lg shadow-2xl animate-in zoom-in-95 duration-200">
             <h3 className="text-lg md:text-3xl font-black text-[#00853E] uppercase mb-4 md:mb-6 tracking-tighter">
               {isEditing ? "Edit Post" : "New Post"}
             </h3>
             <form onSubmit={handleFormSubmit} className="space-y-3 md:space-y-4">
-              <input required placeholder="Event Name" className="w-full p-3 md:p-4 bg-gray-100 rounded-lg md:rounded-2xl outline-none text-sm md:text-sm font-bold" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+              <input required placeholder="Event Name" className="w-full p-3 md:p-4 bg-gray-100 rounded-lg md:rounded-2xl outline-none text-sm font-bold" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
               <div className="grid grid-cols-2 gap-2 md:gap-4">
-                <input required type="date" className="p-3 md:p-4 bg-gray-100 rounded-lg md:rounded-2xl outline-none text-sm md:text-sm" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
-                <input required type="time" className="p-3 md:p-4 bg-gray-100 rounded-lg md:rounded-2xl outline-none text-sm md:text-sm" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} />
+                <input required type="date" className="p-3 md:p-4 bg-gray-100 rounded-lg md:rounded-2xl outline-none text-sm" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                <input required type="time" className="p-3 md:p-4 bg-gray-100 rounded-lg md:rounded-2xl outline-none text-sm" value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })} />
               </div>
-              
-              <div className="space-y-2 md:space-y-2">
-                <label className="text-[8px] md:text-[10px] font-black uppercase text-gray-400 ml-2">Friends</label>
-                <div className="flex flex-wrap gap-1.5 md:gap-2 mb-1">
+
+              {/* Friend Tagging */}
+              <div className="space-y-2">
+                <label className="text-[8px] md:text-[10px] font-black uppercase text-gray-400 ml-2">Tag Friends</label>
+                <div className="flex flex-wrap gap-1.5 mb-1">
                   {selectedFriends.map(friend => (
-                    <span key={friend.id} className="bg-[#00853E]/10 text-[#00853E] px-2 md:px-3 py-1 md:py-1 rounded-full text-[7px] md:text-[10px] font-black flex items-center gap-1 md:gap-2">
+                    <span key={friend.id} className="bg-[#00853E]/10 text-[#00853E] px-2 py-1 rounded-full text-[9px] font-black flex items-center gap-1">
                       {friend.name.toUpperCase()}
-                      <button type="button" onClick={() => setSelectedFriends(prev => prev.filter(f => f.id !== friend.id))} className="hover:text-red-500 font-bold text-[8px]">✕</button>
+                      <button type="button" onClick={() => setSelectedFriends(prev => prev.filter(f => f.id !== friend.id))} className="hover:text-red-500 font-bold">✕</button>
                     </span>
                   ))}
                 </div>
-                <button type="button" onClick={() => setShowFriendPicker(!showFriendPicker)} className="w-full p-3 md:p-4 bg-gray-100 rounded-lg md:rounded-2xl text-left text-[10px] md:text-xs text-gray-500 flex justify-between items-center border border-transparent hover:border-gray-200 transition-all">
-                  {showFriendPicker ? "Close" : "Add"}
+                <button type="button" onClick={() => setShowFriendPicker(!showFriendPicker)} className="w-full p-3 bg-gray-100 rounded-lg text-left text-xs text-gray-500 flex justify-between items-center border border-transparent hover:border-gray-200 transition-all">
+                  {showFriendPicker ? "Close" : "Add Friends"}
                   <span className="text-[7px]">{showFriendPicker ? "▲" : "▼"}</span>
                 </button>
                 {showFriendPicker && (
-                  <div className="bg-white border border-gray-100 rounded-lg md:rounded-2xl shadow-xl max-h-32 md:max-h-40 overflow-y-auto p-1 md:p-2 grid grid-cols-1 gap-1 md:gap-1 animate-in slide-in-from-top-2">
+                  <div className="bg-white border border-gray-100 rounded-lg shadow-xl max-h-40 overflow-y-auto p-2 grid grid-cols-1 gap-1 animate-in slide-in-from-top-2">
                     {friends.length > 0 ? friends.map(friend => (
-                      <button key={friend.id} type="button" onClick={() => { if (!selectedFriends.find(f => f.id === friend.id)) setSelectedFriends([...selectedFriends, friend as UNTFriend]); }} className="flex items-center gap-2 md:gap-3 p-1 md:p-2 hover:bg-gray-50 rounded-lg transition-all text-left">
-                        <div className="w-5 h-5 md:w-7 md:h-7 bg-[#00853E] rounded-full flex items-center justify-center text-white text-[7px] md:text-[10px] font-black flex-shrink-0">
+                      <button key={friend.id} type="button" onClick={() => { if (!selectedFriends.find(f => f.id === friend.id)) setSelectedFriends([...selectedFriends, friend as UNTFriend]); }} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg transition-all text-left">
+                        <div className="w-7 h-7 bg-[#00853E] rounded-full flex items-center justify-center text-white text-[10px] font-black flex-shrink-0">
                           {friend.name.charAt(0).toUpperCase()}
                         </div>
-                        <span className="text-[10px] md:text-xs font-bold text-gray-700">{friend.name}</span>
+                        <span className="text-xs font-bold text-gray-700">{friend.name}</span>
                       </button>
-                    )) : <p className="text-center py-2 md:py-4 text-[8px] md:text-[10px] text-gray-400 uppercase font-black">No friends</p>}
+                    )) : <p className="text-center py-4 text-[10px] text-gray-400 uppercase font-black">No friends yet</p>}
                   </div>
                 )}
               </div>
 
-              <div className="space-y-2 md:space-y-2">
-                <input required placeholder="Location" className="w-full p-3 md:p-4 bg-gray-100 rounded-lg md:rounded-2xl outline-none text-sm md:text-sm" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
-                <button type="button" onClick={handlePickOnMap} className="w-full py-2 md:py-3 bg-gray-900 text-white rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-widest hover:bg-[#00853E] transition-all flex items-center justify-center gap-1 md:gap-2">
-                  📍 {formData.lat !== "33.2108" ? "Set" : "Map"}
+              {/* Location */}
+              <div className="space-y-2">
+                <input required placeholder="Location Name" className="w-full p-3 bg-gray-100 rounded-lg outline-none text-sm" value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} />
+                <button type="button" onClick={handlePickOnMap} className="w-full py-2 bg-gray-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-[#00853E] transition-all flex items-center justify-center gap-2">
+                  📍 {formData.lat !== 33.2108 ? "Location Set ✓" : "Pick on Map"}
                 </button>
               </div>
-              <textarea required placeholder="Description" rows={3} className="w-full p-3 md:p-4 bg-gray-100 rounded-lg md:rounded-2xl outline-none text-sm md:text-sm resize-none" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
-              <div className="flex gap-2 md:gap-4 pt-2 md:pt-4">
-                <button type="button" onClick={closeForm} className="flex-grow py-2.5 md:py-4 bg-gray-200 rounded-lg md:rounded-2xl font-black uppercase text-[8px] md:text-[10px]">Cancel</button>
-                <button type="submit" className="flex-grow py-2.5 md:py-4 bg-[#00853E] text-white rounded-lg md:rounded-2xl font-black uppercase text-[8px] md:text-[10px]">
-                  {isEditing ? "Save" : "Post"}
+
+              <textarea required placeholder="Description" rows={3} className="w-full p-3 bg-gray-100 rounded-lg outline-none text-sm resize-none" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={closeForm} className="flex-grow py-3 bg-gray-200 rounded-lg font-black uppercase text-[9px]">Cancel</button>
+                <button
+                  type="submit"
+                  disabled={createEvent.isPending || updateEvent.isPending}
+                  className="flex-grow py-3 bg-[#00853E] text-white rounded-lg font-black uppercase text-[9px] disabled:opacity-50"
+                >
+                  {(createEvent.isPending || updateEvent.isPending) ? 'Saving...' : isEditing ? "Save" : "Post"}
                 </button>
               </div>
             </form>

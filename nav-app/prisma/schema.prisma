@@ -9,6 +9,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url= env("DATABASE_URL")
 }
 
 // --- USER MODEL ---
@@ -27,6 +28,9 @@ model User {
   receivedFriendRequests Friend[] @relation("FriendReceiver")
   classes       Class[]
   favoriteLocations FavoriteLocation[]
+  communityEvents   CommunityEvent[]
+  eventTags         EventTag[]
+  eventComments     EventComment[]
 
   @@unique([email])
   @@map("user")
@@ -110,7 +114,7 @@ model Class {
   id        String   @id @default(cuid())
   name      String
   location  String
-  time      String?  // Made optional to match your previous code
+  time      String?
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
@@ -132,4 +136,51 @@ model FavoriteLocation {
   @@unique([userId, name, lat, lng])
   @@index([userId])
   @@map("favorite_location")
+}
+
+// --- COMMUNITY EVENTS MODELS ---
+model CommunityEvent {
+  id            String         @id @default(cuid())
+  title         String
+  description   String
+  location      String
+  date          DateTime
+  lat           Float          @default(33.2108)
+  lng           Float          @default(-97.1459)
+  createdById   String
+  createdBy     User           @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  taggedFriends EventTag[]
+  comments      EventComment[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([createdById])
+  @@map("community_event")
+}
+
+model EventTag {
+  id      String         @id @default(cuid())
+  eventId String
+  userId  String
+  event   CommunityEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@map("event_tag")
+}
+
+model EventComment {
+  id        String         @id @default(cuid())
+  eventId   String
+  parentId  String?
+  userId    String
+  text      String
+  event     CommunityEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent    EventComment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   EventComment[] @relation("CommentReplies")
+  createdAt DateTime       @default(now())
+
+  @@index([eventId, createdAt])
+  @@map("event_comment")
 }
