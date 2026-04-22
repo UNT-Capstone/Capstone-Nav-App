@@ -67,7 +67,7 @@ const ProfilePage = async () => {
     <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center">
       {/* HEADER SECTION */}
       <div className="w-full bg-[#00853E] pb-20 px-6 pt-28 flex flex-col items-center text-center -mt-28">
-        <h1 className="text-5xl font-black text-white tracking-tighter mb-2">
+        <h1 className="text-5xl font-black text-white tracking-tighter mt-5 mb-2">
           Student Profile
         </h1>
         <p className="text-green-100 font-medium">UNT Campus Navigator</p>

@@ -25,7 +25,7 @@ export default function LocationDetailsPanel({
   return (
     <div
       className="
-        fixed left-2 top-[65%] md:top-1/2 md:-translate-y-1/2 -translate-y-1/2 md:left-4
+        fixed left-2 top-[60%] md:top-1/2 md:-translate-y-1/2 -translate-y-1/2 md:left-4
         w-[85vw] max-w-xs md:max-w-sm
         max-h-[calc(100vh-8rem)] md:max-h-[calc(100vh-6rem)]
         bg-white shadow-2xl
