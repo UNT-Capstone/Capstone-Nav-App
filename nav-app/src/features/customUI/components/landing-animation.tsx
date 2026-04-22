@@ -35,15 +35,6 @@ export default function LandingPage() {
         >
           Get Started
         </motion.button>
-
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => router.push("/map")}
-          className="px-6 py-3 bg-[#00853E] text-white rounded-2xl shadow-md hover:bg-[#007338] transition font-semibold"
-        >
-          View Map
-        </motion.button>
       </motion.div>
     </div>
   );
