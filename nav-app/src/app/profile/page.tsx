@@ -91,7 +91,7 @@ const ProfilePage = async () => {
               <p className="text-xl font-bold text-gray-900">{user.name}</p>
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">University Email</label>
+              <label className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">Email</label>
               <p className="text-lg font-semibold text-gray-600">{user.email}</p>
             </div>
           </div>
