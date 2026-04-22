@@ -255,7 +255,7 @@ export default function UNTLiveMapInner() {
 
       {/* Directions Panel */}
       {destination && directions.length > 0 && (
-        <div className="md:absolute md:top-28 md:left-4 md:w-[460px] md:max-h-[70vh] fixed bottom-0 left-0 right-0 h-[22vh] md:h-[50vh] bg-white shadow-2xl rounded-t-2xl md:rounded-xl z-[2000] flex flex-col">
+        <div className="md:absolute md:top-44 md:left-4 md:w-[460px] md:max-h-[70vh] fixed bottom-0 left-0 right-0 h-[22vh] md:h-[50vh] bg-white shadow-2xl rounded-t-2xl md:rounded-xl z-[2000] flex flex-col">
           <div className="bg-[#00853E] text-white p-2 md:p-4 font-bold rounded-t-xl md:rounded-t-xl text-xs md:text-base">Directions</div>
           <div className="overflow-y-auto p-2 md:p-4 space-y-2 text-sm flex-1">
             {/* Mobile: Show only current instruction */}
