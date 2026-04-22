@@ -176,6 +176,7 @@ export default function UNTLiveMapInner() {
   const [selectedLocation, setSelectedLocation] = useState<any>(null);
   const [directions, setDirections] = useState<any[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
     delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -191,10 +192,27 @@ export default function UNTLiveMapInner() {
   }, []);
 
   useEffect(() => {
-    if (!navigator.geolocation) return;
-    const id = navigator.geolocation.watchPosition((pos) => {
-      setUserPosition([pos.coords.latitude, pos.coords.longitude]);
-    });
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation not supported");
+      return;
+    }
+
+    const id = navigator.geolocation.watchPosition(
+      (pos) => {
+        setLocationError(null);
+        setUserPosition([pos.coords.latitude, pos.coords.longitude]);
+      },
+      (err) => {
+        setLocationError(err.message);
+        console.error("Geolocation error:", err);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+
     return () => navigator.geolocation.clearWatch(id);
   }, []);
 
@@ -243,6 +261,12 @@ export default function UNTLiveMapInner() {
         </div>
       )}
 
+      {locationError && (
+        <div className="fixed top-48 left-1/2 -translate-x-1/2 z-[500] bg-red-500 text-white text-xs px-4 py-2 rounded-xl shadow">
+          Location unavailable: {locationError}
+        </div>
+      )}
+
       <LocationDetailsPanel
         location={selectedLocation}
         onClose={() => setSelectedLocation(null)}
@@ -267,9 +291,12 @@ export default function UNTLiveMapInner() {
         <MapContainer
           center={defaultPosition}
           zoom={15}
-          minZoom={13}
+          minZoom={11}
           maxZoom={18}
           touchZoom={true}
+          scrollWheelZoom={true}
+          doubleClickZoom={true}
+          zoomControl={true}
           style={{ height: "100%", width: "100%" }}
         >
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
@@ -348,7 +375,7 @@ export default function UNTLiveMapInner() {
           <div className="p-2 md:p-4 border-t">
             <button
               onClick={handleEndRoute}
-              className="w-full bg-red-600 text-white py-1.5 md:py-3 rounded-xl font-bold transition hover:bg-red-700 text.xs md:text-base"
+              className="w-full bg-red-600 text-white py-1.5 md:py-3 rounded-xl font-bold transition hover:bg-red-700 text-xs md:text-base"
             >
               End Route
             </button>
