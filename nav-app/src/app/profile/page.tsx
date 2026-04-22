@@ -48,6 +48,10 @@ const ProfilePage = async () => {
       name: true,
       email: true,
       image: true,
+      favoriteLocations: {
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      },
       searchHistory: {
         orderBy: { createdAt: "desc" },
         take: 5,
@@ -97,29 +101,63 @@ const ProfilePage = async () => {
           </div>
         </div>
 
+        {/* RECENT FAVORITES */}
+        <div className="bg-white shadow-sm border border-gray-100 rounded-[2.5rem] p-8">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-black text-gray-900">Recent Favorites</h3>
+            <span className="bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1 rounded-full">
+              Last 5 saved
+            </span>
+          </div>
+
+          {user.favoriteLocations.length === 0 ? (
+            <div className="text-center py-8 border border-dashed border-gray-100 rounded-3xl">
+              <p className="text-gray-400 font-semibold">No favorite places yet.</p>
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {user.favoriteLocations.map((place) => (
+                <li
+                  key={place.id}
+                  className="flex items-center justify-between p-4 rounded-2xl bg-gray-50/60"
+                >
+                  <div>
+                    <p className="text-gray-800 font-semibold">{place.name}</p>
+                    <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                      {timeAgo(place.createdAt)}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         {/* RECENT SEARCH ACTIVITY */}
         <div className="bg-white shadow-sm border border-gray-100 rounded-[2.5rem] p-8">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-black text-gray-900">Recent Search Activity</h3>
-            <span className="bg-[#00853E]/10 text-[#00853E] text-xs font-bold px-3 py-1 rounded-full">Last 5 searches</span>
+            <span className="bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1 rounded-full">
+              Last 5 searches
+            </span>
           </div>
 
           {user.searchHistory.length === 0 ? (
-            <div className="text-center py-10 border-2 border-dashed border-gray-50 rounded-3xl">
-              <p className="text-gray-400 font-bold">No recent searches found.</p>
+            <div className="text-center py-8 border border-dashed border-gray-100 rounded-3xl">
+              <p className="text-gray-400 font-semibold">No recent searches found.</p>
             </div>
           ) : (
-            <ul className="space-y-4">
+            <ul className="space-y-3">
               {user.searchHistory.map((item) => (
-                <li key={item.id} className="flex items-center justify-between p-4 rounded-2xl bg-gray-50/50 hover:bg-gray-50 transition-colors group">
-                  <div className="flex items-center gap-4">
-                    <div className="w-2 h-2 rounded-full bg-[#00853E]" />
-                    <div>
-                      <p className="text-gray-800 font-bold tracking-tight">"{item.query}"</p>
-                      <span className="text-[10px] text-gray-400 uppercase font-black tracking-tighter">
-                        {timeAgo(item.createdAt)}
-                      </span>
-                    </div>
+                <li
+                  key={item.id}
+                  className="flex items-center justify-between p-4 rounded-2xl bg-gray-50/60"
+                >
+                  <div>
+                    <p className="text-gray-800 font-semibold">"{item.query}"</p>
+                    <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                      {timeAgo(item.createdAt)}
+                    </p>
                   </div>
                 </li>
               ))}
