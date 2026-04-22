@@ -411,57 +411,57 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName }) => {
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-start md:items-center justify-center p-2 md:p-4 backdrop-blur-md">
-          <div className="bg-white rounded-2xl md:rounded-[2.5rem] p-4 md:p-8 w-full max-w-sm md:max-w-lg shadow-2xl animate-in zoom-in-95 duration-200 max-h-[95vh] md:max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl md:text-3xl font-black text-[#00853E] uppercase mb-4 md:mb-8 tracking-tighter">
-              {isEditing ? "Edit Post" : "New Community Post"}
+        <div className="fixed inset-0 bg-black/60 z-50 flex flex-col items-start justify-start md:justify-start p-2 md:p-4 backdrop-blur-md overflow-y-auto">
+          <div className="bg-white rounded-xl md:rounded-[2.5rem] p-1.5 md:p-8 w-full max-w-xs md:max-w-lg shadow-2xl animate-in zoom-in-95 duration-200 max-h-fit mt-60 self-center md:mt-30 md:mx-auto">
+            <h3 className="text-sm md:text-3xl font-black text-[#00853E] uppercase mb-1.5 md:mb-6 tracking-tighter">
+              {isEditing ? "Edit Post" : "New Post"}
             </h3>
-            <form onSubmit={handleFormSubmit} className="space-y-3 md:space-y-4">
-              <input required placeholder="Event Name" className="w-full p-3 md:p-4 bg-gray-100 rounded-xl md:rounded-2xl outline-none text-sm font-bold" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
-              <div className="grid grid-cols-2 gap-3 md:gap-4">
-                <input required type="date" className="p-3 md:p-4 bg-gray-100 rounded-xl md:rounded-2xl outline-none text-sm" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
-                <input required type="time" className="p-3 md:p-4 bg-gray-100 rounded-xl md:rounded-2xl outline-none text-sm" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} />
+            <form onSubmit={handleFormSubmit} className="space-y-0.5 md:space-y-4">
+              <input required placeholder="Event Name" className="w-full p-1.5 md:p-4 bg-gray-100 rounded-lg md:rounded-2xl outline-none text-xs md:text-sm font-bold" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+              <div className="grid grid-cols-2 gap-1 md:gap-4">
+                <input required type="date" className="p-1.5 md:p-4 bg-gray-100 rounded-lg md:rounded-2xl outline-none text-xs md:text-sm" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+                <input required type="time" className="p-1.5 md:p-4 bg-gray-100 rounded-lg md:rounded-2xl outline-none text-xs md:text-sm" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} />
               </div>
               
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-gray-400 ml-2">Tag Friends</label>
-                <div className="flex flex-wrap gap-1.5 md:gap-2 mb-1">
+              <div className="space-y-0.5 md:space-y-2">
+                <label className="text-[7px] md:text-[10px] font-black uppercase text-gray-400 ml-1.5">Friends</label>
+                <div className="flex flex-wrap gap-0.5 md:gap-2 mb-0.5">
                   {selectedFriends.map(friend => (
-                    <span key={friend.id} className="bg-[#00853E]/10 text-[#00853E] px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black flex items-center gap-1 md:gap-2">
+                    <span key={friend.id} className="bg-[#00853E]/10 text-[#00853E] px-1 md:px-3 py-0.5 md:py-1 rounded-full text-[6px] md:text-[10px] font-black flex items-center gap-0.5 md:gap-2">
                       {friend.name.toUpperCase()}
-                      <button type="button" onClick={() => setSelectedFriends(prev => prev.filter(f => f.id !== friend.id))} className="hover:text-red-500 font-bold text-[10px]">✕</button>
+                      <button type="button" onClick={() => setSelectedFriends(prev => prev.filter(f => f.id !== friend.id))} className="hover:text-red-500 font-bold text-[7px]">✕</button>
                     </span>
                   ))}
                 </div>
-                <button type="button" onClick={() => setShowFriendPicker(!showFriendPicker)} className="w-full p-3 md:p-4 bg-gray-100 rounded-xl md:rounded-2xl text-left text-xs text-gray-500 flex justify-between items-center border border-transparent hover:border-gray-200 transition-all">
-                  {showFriendPicker ? "Close Friend List" : "Add Friends to this event..."}
-                  <span className="text-[8px]">{showFriendPicker ? "▲" : "▼"}</span>
+                <button type="button" onClick={() => setShowFriendPicker(!showFriendPicker)} className="w-full p-1.5 md:p-4 bg-gray-100 rounded-lg md:rounded-2xl text-left text-[9px] md:text-xs text-gray-500 flex justify-between items-center border border-transparent hover:border-gray-200 transition-all">
+                  {showFriendPicker ? "Close" : "Add"}
+                  <span className="text-[6px]">{showFriendPicker ? "▲" : "▼"}</span>
                 </button>
                 {showFriendPicker && (
-                  <div className="bg-white border border-gray-100 rounded-2xl shadow-xl max-h-40 overflow-y-auto p-2 grid grid-cols-1 gap-1 animate-in slide-in-from-top-2">
+                  <div className="bg-white border border-gray-100 rounded-lg md:rounded-2xl shadow-xl max-h-24 md:max-h-40 overflow-y-auto p-0.5 md:p-2 grid grid-cols-1 gap-0.5 md:gap-1 animate-in slide-in-from-top-2">
                     {friends.length > 0 ? friends.map(friend => (
-                      <button key={friend.id} type="button" onClick={() => { if (!selectedFriends.find(f => f.id === friend.id)) setSelectedFriends([...selectedFriends, friend as UNTFriend]); }} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-xl transition-all text-left">
-                        <div className="w-7 h-7 bg-[#00853E] rounded-full flex items-center justify-center text-white text-[10px] font-black">
+                      <button key={friend.id} type="button" onClick={() => { if (!selectedFriends.find(f => f.id === friend.id)) setSelectedFriends([...selectedFriends, friend as UNTFriend]); }} className="flex items-center gap-1 md:gap-3 p-0.5 md:p-2 hover:bg-gray-50 rounded-lg transition-all text-left">
+                        <div className="w-4 h-4 md:w-7 md:h-7 bg-[#00853E] rounded-full flex items-center justify-center text-white text-[6px] md:text-[10px] font-black flex-shrink-0">
                           {friend.name.charAt(0).toUpperCase()}
                         </div>
-                        <span className="text-xs font-bold text-gray-700">{friend.name}</span>
+                        <span className="text-[9px] md:text-xs font-bold text-gray-700">{friend.name}</span>
                       </button>
-                    )) : <p className="text-center py-4 text-[10px] text-gray-400 uppercase font-black">No friends found</p>}
+                    )) : <p className="text-center py-1 md:py-4 text-[7px] md:text-[10px] text-gray-400 uppercase font-black">No friends</p>}
                   </div>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <input required placeholder="Location Name" className="w-full p-3 md:p-4 bg-gray-100 rounded-xl md:rounded-2xl outline-none text-sm" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
-                <button type="button" onClick={handlePickOnMap} className="w-full py-2.5 md:py-3 bg-gray-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[#00853E] transition-all flex items-center justify-center gap-2">
-                  📍 {formData.lat !== "33.2108" ? "Location Set (Change)" : "Pinpoint Precise Spot on Map"}
+              <div className="space-y-0.5 md:space-y-2">
+                <input required placeholder="Location" className="w-full p-1.5 md:p-4 bg-gray-100 rounded-lg md:rounded-2xl outline-none text-xs md:text-sm" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
+                <button type="button" onClick={handlePickOnMap} className="w-full py-1 md:py-3 bg-gray-900 text-white rounded-lg md:rounded-xl text-[6px] md:text-[9px] font-black uppercase tracking-widest hover:bg-[#00853E] transition-all flex items-center justify-center gap-0.5 md:gap-2">
+                  📍 {formData.lat !== "33.2108" ? "Set" : "Map"}
                 </button>
               </div>
-              <textarea required placeholder="Description" rows={3} className="w-full p-3 md:p-4 bg-gray-100 rounded-xl md:rounded-2xl outline-none text-sm resize-none" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
-              <div className="flex gap-3 md:gap-4 pt-3 md:pt-4">
-                <button type="button" onClick={closeForm} className="flex-grow py-3 md:py-5 bg-gray-200 rounded-xl md:rounded-2xl font-black uppercase text-[10px]">Cancel</button>
-                <button type="submit" className="flex-grow py-3 md:py-5 bg-[#00853E] text-white rounded-xl md:rounded-2xl font-black uppercase text-[10px]">
-                  {isEditing ? "Save Changes" : "Post to Feed"}
+              <textarea required placeholder="Description" rows={1} className="w-full p-1.5 md:p-4 bg-gray-100 rounded-lg md:rounded-2xl outline-none text-xs md:text-sm resize-none" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+              <div className="flex gap-1 md:gap-4 pt-0.5 md:pt-4">
+                <button type="button" onClick={closeForm} className="flex-grow py-1.5 md:py-4 bg-gray-200 rounded-lg md:rounded-2xl font-black uppercase text-[7px] md:text-[10px]">Cancel</button>
+                <button type="submit" className="flex-grow py-1.5 md:py-4 bg-[#00853E] text-white rounded-lg md:rounded-2xl font-black uppercase text-[7px] md:text-[10px]">
+                  {isEditing ? "Save" : "Post"}
                 </button>
               </div>
             </form>
