@@ -306,30 +306,52 @@ export default function UNTLiveMapInner() {
       </div>
 
       {destination && directions.length > 0 && (
-        <div className="md:absolute md:top-44 md:left-4 md:w-[460px] md:max-h-[70vh] fixed bottom-0 left-0 right-0 h-[22vh] md:h-[50vh] bg-white shadow-2xl rounded-t-2xl md:rounded-xl z-[2000] flex flex-col">
-          <div className="bg-[#00853E] text-white p-2 md:p-4 font-bold rounded-t-xl text-xs md:text-base">Directions</div>
-          <div className="overflow-y-auto p-2 md:p-4 space-y-2 text-sm flex-1">
+        <div
+          className="md:absolute md:top-44 md:left-4 md:w-[460px] md:max-h-[70vh] fixed bottom-0 left-0 right-0 h-[40vh] md:h-[50vh] bg-white shadow-2xl rounded-t-2xl md:rounded-xl z-[2000] flex flex-col"
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+        >
+          <div className="bg-[#00853E] text-white p-2 md:p-4 font-bold rounded-t-xl text-xs md:text-base">
+            Directions
+          </div>
+
+          <div
+            className="overflow-y-auto p-2 md:p-4 space-y-2 text-sm flex-1"
+            style={{ overflowY: "scroll", WebkitOverflowScrolling: "touch" }}
+          >
             <div className="md:hidden">
-              {directions[activeIndex] && (
-                <div className="p-2 bg-[#00853E]/10 border-l-4 border-[#00853E] rounded-lg">
-                  <span className="font-bold mr-2 text-xs">{activeIndex + 1}.</span>
-                  <span className="text-xs">{directions[activeIndex].instruction}</span>
-                  <div className="text-gray-600 text-xs mt-1">{Math.round(directions[activeIndex].distance)} m</div>
+              {directions.map((step, i) => (
+                <div
+                  key={i}
+                  className={`p-2 border-b last:border-0 ${i === activeIndex ? "bg-[#00853E]/10 border-l-4 border-[#00853E]" : ""}`}
+                >
+                  <span className="font-bold mr-2 text-xs">{i + 1}.</span>
+                  <span className="text-xs">{step.instruction}</span>
+                  <div className="text-gray-600 text-xs mt-1">{Math.round(step.distance)} m</div>
                 </div>
-              )}
+              ))}
             </div>
 
             <div className="hidden md:block">
               {directions.map((step, i) => (
-                <div key={i} className={`p-2 border-b last:border-0 hover:bg-gray-50 ${i === activeIndex ? "bg-[#00853E]/5 border-l-4 border-[#00853E]" : ""}`}>
+                <div
+                  key={i}
+                  className={`p-2 border-b last:border-0 hover:bg-gray-50 ${i === activeIndex ? "bg-[#00853E]/5 border-l-4 border-[#00853E]" : ""}`}
+                >
                   <span className="font-bold mr-2">{i + 1}.</span> {step.instruction}
                   <div className="text-gray-400 text-xs mt-1">{Math.round(step.distance)} m</div>
                 </div>
               ))}
             </div>
           </div>
+
           <div className="p-2 md:p-4 border-t">
-            <button onClick={handleEndRoute} className="w-full bg-red-600 text-white py-1.5 md:py-3 rounded-xl font-bold transition hover:bg-red-700 text-xs md:text-base">End Route</button>
+            <button
+              onClick={handleEndRoute}
+              className="w-full bg-red-600 text-white py-1.5 md:py-3 rounded-xl font-bold transition hover:bg-red-700 text.xs md:text-base"
+            >
+              End Route
+            </button>
           </div>
         </div>
       )}
