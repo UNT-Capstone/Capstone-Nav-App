@@ -71,7 +71,7 @@ export default function UNTSearchBar({ onSelect }: UNTSearchBarProps) {
   const filtered = results.slice(0, 8);
 
   return (
-    <div className="w-full relative">
+    <div className="w-full relative z-[100]">
       <div className="relative">
         <input
           type="text"
@@ -89,7 +89,7 @@ export default function UNTSearchBar({ onSelect }: UNTSearchBarProps) {
       </div>
 
       {query.length > 0 && (
-        <div className="bg-white border rounded-xl shadow mt-2 max-h-64 overflow-y-auto">
+        <div className="absolute z-[100] w-full bg-white border rounded-xl shadow mt-2 max-h-64 overflow-y-auto">
           {filtered.length > 0 ? (
             filtered.map((loc, index) => {
               const placeName = loc.name.split(",")[0];
