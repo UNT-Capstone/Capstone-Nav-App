@@ -7,7 +7,23 @@ export const createTRPCContext = cache(async () => {
   /**
    * @see: https://trpc.io/docs/server/context
    */
-  return { userId: 'user_123' };
+  const headersList = await headers();
+  
+  try {
+    const session = await auth.api.getSession({
+      headers: headersList,
+    });
+
+    return { 
+      auth: session,
+      userId: session?.user?.id
+    };
+  } catch (error) {
+    return { 
+      auth: null,
+      userId: null
+    };
+  }
 });
 // Avoid exporting the entire t-object
 // since it's not very descriptive.
@@ -24,16 +40,12 @@ export const createTRPCRouter = t.router;
 export const createCallerFactory = t.createCallerFactory;
 export const baseProcedure = t.procedure;
 export const protectedProcedure = baseProcedure.use(async ({ ctx, next}) => {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
+  if (!ctx.auth || !ctx.userId) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
       message: "Unauthorized",
     });
   }
 
-  return next({ ctx: {...ctx, auth: session} });
+  return next({ ctx });
 })

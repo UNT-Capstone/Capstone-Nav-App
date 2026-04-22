@@ -190,6 +190,84 @@ export const appRouter = createTRPCRouter({
 
     return Array.from(friendIds);
   }),
+  addFavoriteLocation: protectedProcedure
+    .input(z.object({
+      name: z.string(),
+      lat: z.number(),
+      lng: z.number()
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const userId = ctx.auth.user.id;
+
+      try {
+        return await prisma.favoriteLocation.create({
+          data: {
+            name: input.name,
+            lat: input.lat,
+            lng: input.lng,
+            userId
+          }
+        });
+      } catch (error: any) {
+        if (error.code === 'P2002') {
+          throw new TRPCError({
+            code: 'CONFLICT',
+            message: 'This location is already in your favorites'
+          });
+        }
+        throw error;
+      }
+    }),
+  removeFavoriteLocation: protectedProcedure
+    .input(z.object({
+      name: z.string(),
+      lat: z.number(),
+      lng: z.number()
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const userId = ctx.auth.user.id;
+
+      return await prisma.favoriteLocation.deleteMany({
+        where: {
+          userId,
+          name: input.name,
+          lat: input.lat,
+          lng: input.lng
+        }
+      });
+    }),
+  isFavoriteLocation: protectedProcedure
+    .input(z.object({
+      name: z.string(),
+      lat: z.number(),
+      lng: z.number()
+    }))
+    .query(async ({ input, ctx }) => {
+      const userId = ctx.auth.user.id;
+
+      const favorite = await prisma.favoriteLocation.findFirst({
+        where: {
+          userId,
+          name: input.name,
+          lat: input.lat,
+          lng: input.lng
+        }
+      });
+
+      return !!favorite;
+    }),
+  getFavoriteLocations: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.auth.user.id;
+
+    return await prisma.favoriteLocation.findMany({
+      where: {
+        userId
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+  }),
 });
 // export type definition of API
 export type AppRouter = typeof appRouter;

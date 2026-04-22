@@ -1,7 +1,7 @@
 "use client";
 
 import { X, MapPin, Heart, Calendar } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface LocationDetailsPanelProps {
   location: {
@@ -19,6 +19,81 @@ export default function LocationDetailsPanel({
   onDirections,
 }: LocationDetailsPanelProps) {
   const [isAddedToFavorites, setIsAddedToFavorites] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Check if location is already favorited on component mount
+  useEffect(() => {
+    if (!location) return;
+
+    const checkFavoriteStatus = async () => {
+      try {
+        const response = await fetch("/api/trpc/isFavoriteLocation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: location.name,
+            lat: location.lat,
+            lng: location.lng,
+          }),
+        });
+
+        if (!response.ok) {
+          console.error("Failed to check favorite status:", response.statusText);
+          return;
+        }
+
+        const data = await response.json();
+        setIsAddedToFavorites(data.result?.data ?? false);
+      } catch (error) {
+        console.error("Error checking favorite status:", error);
+      }
+    };
+
+    checkFavoriteStatus();
+  }, [location]);
+
+  const handleFavoriteClick = async () => {
+    if (!location) return;
+
+    setIsLoading(true);
+
+    try {
+      const endpoint = isAddedToFavorites
+        ? "removeFavoriteLocation"
+        : "addFavoriteLocation";
+
+      const response = await fetch(`/api/trpc/${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: location.name,
+          lat: location.lat,
+          lng: location.lng,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Error updating favorite: ${response.statusText}`, errorText);
+        setIsLoading(false);
+        return;
+      }
+
+      const data = await response.json();
+      
+      if (data.error) {
+        console.error("Error from server:", data.error);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsAddedToFavorites((prev) => !prev);
+    } catch (error) {
+      console.error("Error updating favorite:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (!location) return null;
 
@@ -81,8 +156,9 @@ export default function LocationDetailsPanel({
 
         {/* Favorites */}
         <button
-          onClick={() => setIsAddedToFavorites((prev) => !prev)}
-          className={`w-full font-semibold py-2.5 md:py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm md:text-base ${
+          onClick={handleFavoriteClick}
+          disabled={isLoading}
+          className={`w-full font-semibold py-2.5 md:py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm md:text-base disabled:opacity-60 disabled:cursor-not-allowed ${
             isAddedToFavorites
               ? "bg-red-100 text-red-600 hover:bg-red-200"
               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -93,7 +169,11 @@ export default function LocationDetailsPanel({
             fill={isAddedToFavorites ? "currentColor" : "none"}
             className="md:w-5 md:h-5"
           />
-          {isAddedToFavorites ? "Saved" : "Add to Favorites"}
+          {isLoading
+            ? "Loading..."
+            : isAddedToFavorites
+              ? "Saved"
+              : "Add to Favorites"}
         </button>
 
         {/* Event */}
