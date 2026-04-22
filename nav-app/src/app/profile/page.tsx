@@ -71,8 +71,8 @@ const ProfilePage = async () => {
     <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center">
       {/* HEADER SECTION */}
       <div className="w-full bg-[#00853E] pb-20 px-6 pt-28 flex flex-col items-center text-center -mt-28">
-        <h1 className="text-5xl font-black text-white tracking-tighter mt-5 mb-2">
-          Student Profile
+        <h1 className="text-5xl font-black text-white tracking-tighter mb-2">
+          Profile
         </h1>
         <p className="text-green-100 font-medium">UNT Campus Navigator</p>
       </div>
@@ -95,7 +95,7 @@ const ProfilePage = async () => {
               <p className="text-xl font-bold text-gray-900">{user.name}</p>
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">University Email</label>
+              <label className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">Email</label>
               <p className="text-lg font-semibold text-gray-600">{user.email}</p>
             </div>
           </div>
