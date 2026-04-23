@@ -5,8 +5,8 @@ export default async function Page() {
   const session = await requireAuth();
 
   return (
-    <UNTEventsPage
-      initialUserName={session.user?.name ?? "Mean Green Eagle"}
+    <UNTEventsPage 
+      initialUserName={session.user?.name ?? "Mean Green Eagle"} 
       currentUserId={session.user?.id ?? ""}
     />
   );
