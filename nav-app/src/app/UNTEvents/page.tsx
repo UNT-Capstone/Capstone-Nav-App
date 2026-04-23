@@ -9,6 +9,7 @@ export default async function Page() {
   return (
     <UNTEventsPage 
       initialUserName={session.user?.name ?? "Mean Green Eagle"} 
+      currentUserId={session.user?.id ?? ""}
     />
   );
 }
