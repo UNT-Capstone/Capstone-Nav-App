@@ -45,6 +45,7 @@ interface UNTOfficialEvent {
   geo?: { latitude: string; longitude: string };
 }
 
+
 interface CommentNodeProps {
   comment: DBComment;
   allComments: DBComment[];
@@ -55,27 +56,33 @@ interface CommentNodeProps {
 
 const CommentNode: React.FC<CommentNodeProps> = ({ comment, allComments, level, onReply, currentUserId }) => {
   const children = allComments.filter(c => c.parentId === comment.id);
-  const indentClass = level > 0 ? "ml-6 md:ml-10" : "";
 
   return (
-    <div className={`space-y-3 ${indentClass}`}>
-      <div className={`p-4 rounded-2xl border transition-all ${level === 0 ? "bg-gray-50 border-gray-100" : "bg-white border-l-4 border-[#00853E] shadow-sm"}`}>
-        <p className="text-[#00853E] font-black text-[9px] uppercase mb-1">
-          {comment.user.name}
-          <span className="text-gray-300 font-normal ml-2">
+    <div className={level > 0 ? "ml-8 mt-3" : ""}>
+      <div className={`rounded-2xl p-4 ${level === 0 ? "bg-gray-50 border border-gray-100" : "bg-white border-l-4 border-[#00853E]"}`}>
+        {}
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-7 h-7 rounded-full bg-[#00853E] flex items-center justify-center text-white text-[11px] font-black flex-shrink-0">
+            {comment.user.name.charAt(0).toUpperCase()}
+          </div>
+          <span className="text-[#00853E] font-black text-xs">{comment.user.name}</span>
+          <span className="text-gray-300 text-[10px] ml-auto">
             {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </span>
-        </p>
-        <p className="text-gray-700 text-sm leading-snug">{comment.text}</p>
+        </div>
+        {}
+        <p className="text-gray-800 text-sm leading-relaxed pl-9">{comment.text}</p>
         <button
           onClick={() => onReply(comment)}
-          className="mt-2 text-[9px] font-black uppercase text-gray-400 hover:text-[#00853E]"
+          className="mt-2 ml-9 text-[10px] font-bold text-gray-400 hover:text-[#00853E] transition-colors"
         >
           ↩ Reply
         </button>
       </div>
+
+      {}
       {children.length > 0 && (
-        <div className="space-y-3">
+        <div className="mt-3 space-y-3">
           {children.map(child => (
             <CommentNode
               key={child.id}
@@ -122,43 +129,28 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
   const [replyingTo, setReplyingTo] = useState<DBComment | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
 
- 
+
   const { data: friends = [] } = useQuery(trpc.getFriends.queryOptions());
 
   const { data: communityEvents = [], isLoading: communityLoading } = useQuery(
     trpc.getCommunityEvents.queryOptions()
   );
 
-
+  
   const activeIsDB = typeof activeEventId === 'string' && activeEventId.length > 0;
-
-
-  // Resolve the full DB event object for the currently selected event (if any)
-  const activeDBEvent = useMemo((): DBEvent | null => {
-    if (!activeIsDB) return null;
-    return (communityEvents as DBEvent[]).find(e => e.id === activeEventId) ?? null;
-  }, [activeIsDB, activeEventId, communityEvents]);
-
-  // Discussion is private: only the creator or a tagged friend can see it
-  const canAccessDiscussion = useMemo((): boolean => {
-    if (!activeDBEvent) return false;
-    const isCreator = activeDBEvent.createdById === currentUserId;
-    const isTagged = activeDBEvent.taggedFriends.some(t => t.userId === currentUserId);
-    return isCreator || isTagged;
-  }, [activeDBEvent, currentUserId]);
 
   
   const { data: comments = [] } = useQuery(
     trpc.getComments.queryOptions(
       { eventId: activeEventId as string },
       {
-        enabled: activeIsDB && showForum && canAccessDiscussion,
+        enabled: activeIsDB && showForum,
         staleTime: 0,
       }
     )
   );
 
-  
+ 
   const createEvent = useMutation(
     trpc.createCommunityEvent.mutationOptions({
       onSuccess: () => {
@@ -177,7 +169,7 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
     })
   );
 
- 
+  
   const postCommentMutation = useMutation(
     trpc.postComment.mutationOptions({
       onSuccess: async () => {
@@ -193,7 +185,7 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
     })
   );
 
-  
+
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -298,10 +290,10 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
     setFormData({ title: "", date: "", time: "", location: "", description: "", lat: 33.2108, lng: -97.1459 });
   };
 
-  
+
   const handlePostComment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim() || !activeIsDB || !canAccessDiscussion) return;
+    if (!newComment.trim() || !activeIsDB) return;
     postCommentMutation.mutate({
       eventId: activeEventId as string,
       text: newComment,
@@ -309,7 +301,7 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
     });
   };
 
-  
+ 
   const myInvolvedEvents = useMemo(() => {
     return communityEvents.filter(ev =>
       ev.createdById === currentUserId ||
@@ -351,9 +343,9 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
         {}
         <header className="mb-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-center gap-2 bg-gray-200/50 p-1.5 rounded-2xl w-fit">
-            <button onClick={() => { setView("official"); setActiveEventId(null); }} className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${view === "official" ? "bg-[#00853E] text-white shadow-lg" : "text-gray-500 hover:text-[#00853E]"}`}>UNT Events</button>
-            <button onClick={() => { setView("user"); setActiveEventId(null); }} className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${view === "user" ? "bg-[#00853E] text-white shadow-lg" : "text-gray-500 hover:text-[#00853E]"}`}>Community</button>
-            <button onClick={() => { setView("my-events"); setActiveEventId(null); }} className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${view === "my-events" ? "bg-[#00853E] text-white shadow-lg" : "text-gray-500 hover:text-[#00853E]"}`}>My Events</button>
+            <button onClick={() => { setView("official"); setActiveEventId(null); setShowForum(false); }} className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${view === "official" ? "bg-[#00853E] text-white shadow-lg" : "text-gray-500 hover:text-[#00853E]"}`}>UNT Events</button>
+            <button onClick={() => { setView("user"); setActiveEventId(null); setShowForum(false); }} className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${view === "user" ? "bg-[#00853E] text-white shadow-lg" : "text-gray-500 hover:text-[#00853E]"}`}>Community</button>
+            <button onClick={() => { setView("my-events"); setActiveEventId(null); setShowForum(false); }} className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${view === "my-events" ? "bg-[#00853E] text-white shadow-lg" : "text-gray-500 hover:text-[#00853E]"}`}>My Events</button>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <input type="text" placeholder="Search events..." className="pl-4 pr-4 py-3 rounded-xl border border-gray-200 text-sm outline-none w-full md:w-64 bg-white shadow-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
@@ -402,117 +394,126 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
             ))}
           </div>
 
-          {/* Event Detail */}
-          <div className="md:col-span-8 p-6 md:p-12 overflow-y-auto bg-white flex flex-col relative">
+          {}
+          <div className="md:col-span-8 overflow-hidden bg-white flex flex-col relative">
+
             {activeEvent ? (
-              <div className="h-full flex flex-col animate-in fade-in slide-in-from-bottom-4">
+              <>
+                {/* ── Normal event detail view ── */}
+                <div className={`h-full flex flex-col p-6 md:p-12 overflow-y-auto transition-all duration-300 ${showForum ? 'hidden' : 'flex'}`}>
 
-                {/* Badges */}
-                <div className="mb-6 flex flex-wrap gap-2 items-center">
-                  {isOfficialEvent(activeEvent) ? (
-                    <span className="bg-[#00853E] text-white text-[9px] px-3 py-1.5 rounded-full font-black tracking-widest">🦅 VERIFIED OFFICIAL UNT EVENT</span>
-                  ) : (
-                    <>
-                      <span className="bg-gray-100 text-gray-600 text-[9px] px-3 py-1.5 rounded-full font-black tracking-widest">
-                        👤 POSTED BY: {(activeEvent as DBEvent).createdBy.name}
-                      </span>
-                      {(activeEvent as DBEvent).taggedFriends.map(tag => (
-                        <span key={tag.id} className="bg-green-50 text-[#00853E] text-[9px] px-3 py-1.5 rounded-full font-black tracking-widest border border-green-100">
-                          🤝 WITH {tag.user.name.toUpperCase()}
-                        </span>
-                      ))}
-                      {(activeEvent as DBEvent).createdById === currentUserId && (
-                        <button
-                          onClick={() => openEditModal(activeEvent as DBEvent)}
-                          className="ml-auto text-[9px] font-black text-gray-400 hover:text-[#00853E] uppercase tracking-widest underline underline-offset-4 decoration-2"
-                        >
-                          Edit Post
-                        </button>
-                      )}
-                    </>
-                  )}
-                </div>
-
-                {/* Title */}
-                <h2 className="text-3xl md:text-5xl font-black mb-8 text-gray-900 tracking-tighter leading-tight">{activeEvent.title}</h2>
-
-                {/* Date / Location card */}
-                <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 mb-10 flex items-center gap-6">
-                  <div className="text-center border-r pr-6 border-gray-200">
+                  {/* Badges */}
+                  <div className="mb-6 flex flex-wrap gap-2 items-center">
                     {isOfficialEvent(activeEvent) ? (
-                      <>
-                        <p className="text-xs font-black text-[#00853E] uppercase">{new Date(activeEvent.first_date).toLocaleDateString(undefined, { month: 'short' })}</p>
-                        <p className="text-2xl font-black text-gray-900">{new Date(activeEvent.first_date).toLocaleDateString(undefined, { day: 'numeric' })}</p>
-                      </>
+                      <span className="bg-[#00853E] text-white text-[9px] px-3 py-1.5 rounded-full font-black tracking-widest">🦅 VERIFIED OFFICIAL UNT EVENT</span>
                     ) : (
                       <>
-                        <p className="text-xs font-black text-[#00853E] uppercase">{new Date((activeEvent as DBEvent).date).toLocaleDateString(undefined, { month: 'short' })}</p>
-                        <p className="text-2xl font-black text-gray-900">{new Date((activeEvent as DBEvent).date).toLocaleDateString(undefined, { day: 'numeric' })}</p>
+                        <span className="bg-gray-100 text-gray-600 text-[9px] px-3 py-1.5 rounded-full font-black tracking-widest">
+                          👤 POSTED BY: {(activeEvent as DBEvent).createdBy.name}
+                        </span>
+                        {(activeEvent as DBEvent).taggedFriends.map(tag => (
+                          <span key={tag.id} className="bg-green-50 text-[#00853E] text-[9px] px-3 py-1.5 rounded-full font-black tracking-widest border border-green-100">
+                            🤝 WITH {tag.user.name.toUpperCase()}
+                          </span>
+                        ))}
+                        {(activeEvent as DBEvent).createdById === currentUserId && (
+                          <button
+                            onClick={() => openEditModal(activeEvent as DBEvent)}
+                            className="ml-auto text-[9px] font-black text-gray-400 hover:text-[#00853E] uppercase tracking-widest underline underline-offset-4 decoration-2"
+                          >
+                            Edit Post
+                          </button>
+                        )}
                       </>
                     )}
                   </div>
-                  <div>
-                    <p className="text-sm font-black text-gray-800 uppercase">Location</p>
-                    <p className="text-sm text-gray-500">
-                      {isOfficialEvent(activeEvent) ? activeEvent.location_name : (activeEvent as DBEvent).location || "UNT Campus"}
-                    </p>
+
+                  <h2 className="text-3xl md:text-5xl font-black mb-8 text-gray-900 tracking-tighter leading-tight">{activeEvent.title}</h2>
+
+                  <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 mb-10 flex items-center gap-6">
+                    <div className="text-center border-r pr-6 border-gray-200">
+                      {isOfficialEvent(activeEvent) ? (
+                        <>
+                          <p className="text-xs font-black text-[#00853E] uppercase">{new Date(activeEvent.first_date).toLocaleDateString(undefined, { month: 'short' })}</p>
+                          <p className="text-2xl font-black text-gray-900">{new Date(activeEvent.first_date).toLocaleDateString(undefined, { day: 'numeric' })}</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-xs font-black text-[#00853E] uppercase">{new Date((activeEvent as DBEvent).date).toLocaleDateString(undefined, { month: 'short' })}</p>
+                          <p className="text-2xl font-black text-gray-900">{new Date((activeEvent as DBEvent).date).toLocaleDateString(undefined, { day: 'numeric' })}</p>
+                        </>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-gray-800 uppercase">Location</p>
+                      <p className="text-sm text-gray-500">
+                        {isOfficialEvent(activeEvent) ? activeEvent.location_name : (activeEvent as DBEvent).location || "UNT Campus"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="prose prose-lg text-gray-600 flex-grow leading-relaxed mb-10">
+                    {isOfficialEvent(activeEvent)
+                      ? (activeEvent.description_text?.replace(/<[^>]*>?/gm, "") || "Join fellow Mean Green students for this event!")
+                      : ((activeEvent as DBEvent).description || "Join fellow Mean Green students for this event!")
+                    }
+                  </div>
+
+                  <div className="flex flex-wrap gap-4 pt-10 border-t mt-auto">
+                    {}
+                    {isDBEvent(activeEvent) && (
+                      <button
+                        onClick={() => setShowForum(true)}
+                        className="px-8 py-5 bg-white text-gray-900 border-2 border-gray-900 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-gray-900 hover:text-white transition-all shadow-md flex items-center gap-2"
+                      >
+                        💬 Discussion
+                        {comments.length > 0 && (
+                          <span className="bg-[#00853E] text-white text-[9px] px-2 py-0.5 rounded-full font-black">
+                            {comments.length}
+                          </span>
+                        )}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleGoToMap(activeEvent as any)}
+                      disabled={routeLoading}
+                      className="px-8 py-5 bg-[#00853E] text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex-grow text-center hover:bg-[#006a31] shadow-lg transition-all disabled:opacity-60"
+                    >
+                      {routeLoading ? "📍 Getting Location..." : "🗺️ Route on Map"}
+                    </button>
                   </div>
                 </div>
 
-                {/* Description */}
-                <div className="prose prose-lg text-gray-600 flex-grow leading-relaxed mb-10">
-                  {isOfficialEvent(activeEvent)
-                    ? (activeEvent.description_text?.replace(/<[^>]*>?/gm, "") || "Join fellow Mean Green students for this event!")
-                    : ((activeEvent as DBEvent).description || "Join fellow Mean Green students for this event!")
-                  }
-                </div>
+                {}
+                {showForum && isDBEvent(activeEvent) && (
+                  <div className="absolute inset-0 bg-white z-20 flex flex-col">
 
-                {/* Action buttons */}
-                <div className="flex flex-wrap gap-4 pt-10 border-t mt-auto">
-                  {/* Discussion button — only visible to creator and tagged friends */}
-                  {isDBEvent(activeEvent) && canAccessDiscussion && (
-                    <button
-                      onClick={() => setShowForum(true)}
-                      className="px-8 py-5 bg-white text-gray-900 border-2 border-gray-900 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-gray-900 hover:text-white transition-all shadow-md"
-                    >
-                      💬 Discussion
-                    </button>
-                  )}
-                  {/* Locked pill shown to everyone else on DB events */}
-                  {isDBEvent(activeEvent) && !canAccessDiscussion && (
-                    <div className="px-8 py-5 bg-gray-100 text-gray-400 border-2 border-gray-200 rounded-2xl font-black uppercase text-[10px] tracking-widest cursor-not-allowed select-none">
-                      🔒 Discussion (Invite Only)
-                    </div>
-                  )}
-                  <button
-                    onClick={() => handleGoToMap(activeEvent as any)}
-                    disabled={routeLoading}
-                    className="px-8 py-5 bg-[#00853E] text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex-grow text-center hover:bg-[#006a31] shadow-lg transition-all disabled:opacity-60"
-                  >
-                    {routeLoading ? "📍 Getting Location..." : "🗺️ Route on Map"}
-                  </button>
-                </div>
-
-                {/* ─── DISCUSSION FORUM OVERLAY ─────────────────────────────
-                    Double-gated: button above only shows for allowed users,
-                    and this render also checks canAccessDiscussion as a safety net.
-                ──────────────────────────────────────────────────────────── */}
-                {showForum && isDBEvent(activeEvent) && canAccessDiscussion && (
-                  <div className="absolute inset-0 bg-white z-20 p-8 flex flex-col animate-in slide-in-from-right duration-300">
-                    <div className="flex justify-between items-center mb-8 pb-4 border-b">
-                      <div>
-                        <h3 className="text-2xl font-black uppercase text-[#00853E]">Discussion</h3>
-                        <p className="text-[9px] text-gray-400 uppercase font-black mt-0.5 tracking-widest">
-                          🔒 Private — Creator &amp; Tagged Friends Only
+                    {}
+                    <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 bg-white flex-shrink-0">
+                      <button
+                        onClick={() => { setShowForum(false); setReplyingTo(null); }}
+                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-500 font-black"
+                      >
+                        ←
+                      </button>
+                      <div className="flex-grow min-w-0">
+                        <h3 className="font-black text-gray-900 text-sm uppercase tracking-wide truncate">
+                          💬 {activeEvent.title}
+                        </h3>
+                        <p className="text-[10px] text-gray-400 font-medium">
+                          Public discussion · {comments.length} {comments.length === 1 ? 'message' : 'messages'}
                         </p>
                       </div>
-                      <button onClick={() => { setShowForum(false); setReplyingTo(null); }} className="font-black text-gray-400 uppercase text-xs hover:text-black">✕ Close</button>
                     </div>
 
                     {}
-                    <div className="flex-grow overflow-y-auto space-y-6 mb-6 pr-2">
+                    <div className="flex-grow overflow-y-auto px-6 py-4 space-y-4">
                       {comments.length === 0 ? (
-                        <p className="text-gray-400 italic text-center py-20">No messages yet. Start the buzz!</p>
+                        <div className="flex flex-col items-center justify-center h-full text-center py-20">
+                          <div className="text-4xl mb-3">💬</div>
+                          <p className="text-gray-600 font-semibold text-sm">No messages yet</p>
+                          <p className="text-gray-400 text-xs mt-1">Be the first to start the conversation!</p>
+                        </div>
                       ) : (
                         comments.filter(c => !c.parentId).map(root => (
                           <CommentNode
@@ -528,35 +529,57 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
                     </div>
 
                     {}
-                    <form onSubmit={handlePostComment} className="flex flex-col gap-2">
+                    <div className="flex-shrink-0 border-t border-gray-100 bg-white px-4 py-3">
+                      {}
                       {replyingTo && (
-                        <div className="flex justify-between items-center bg-green-50 px-4 py-2 rounded-t-xl border-t border-x border-green-100">
-                          <p className="text-[10px] text-[#00853E] font-bold italic">Replying to {replyingTo.user.name}...</p>
-                          <button type="button" onClick={() => setReplyingTo(null)} className="text-[10px] font-black text-gray-400">✕ CANCEL</button>
+                        <div className="flex items-center justify-between bg-green-50 border border-green-100 rounded-xl px-3 py-2 mb-2">
+                          <p className="text-[11px] text-[#00853E] font-semibold">
+                            ↩ Replying to <span className="font-black">{replyingTo.user.name}</span>
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setReplyingTo(null)}
+                            className="text-gray-400 hover:text-red-400 text-xs font-black ml-4"
+                          >
+                            ✕
+                          </button>
                         </div>
                       )}
-                      <div className="flex gap-2">
-                        <input
+                      <form onSubmit={handlePostComment} className="flex items-end gap-2">
+                        <textarea
                           value={newComment}
                           onChange={e => setNewComment(e.target.value)}
-                          placeholder={replyingTo ? "Write your reply..." : "Type a message..."}
-                          className={`flex-grow bg-gray-100 p-5 rounded-2xl outline-none text-sm focus:ring-2 focus:ring-[#00853E] ${replyingTo ? 'rounded-tl-none border-l-2 border-[#00853E]' : ''}`}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handlePostComment(e as any);
+                            }
+                          }}
+                          placeholder="Write a message... (Enter to send)"
+                          rows={1}
+                          className="flex-grow bg-gray-100 rounded-2xl px-4 py-3 text-sm outline-none resize-none focus:ring-2 focus:ring-[#00853E] focus:bg-white transition-all leading-relaxed"
+                          style={{ minHeight: '44px', maxHeight: '120px' }}
                         />
                         <button
                           type="submit"
                           disabled={!newComment.trim() || postCommentMutation.isPending}
-                          className="bg-[#00853E] text-white px-8 rounded-2xl font-black uppercase text-[10px] disabled:opacity-50 hover:bg-[#006a31] transition-all"
+                          className="w-11 h-11 bg-[#00853E] text-white rounded-2xl font-black text-lg flex items-center justify-center flex-shrink-0 disabled:opacity-40 hover:bg-[#006a31] transition-all active:scale-95"
                         >
-                          {postCommentMutation.isPending ? '...' : 'Send'}
+                          {postCommentMutation.isPending ? (
+                            <span className="text-xs">...</span>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                              <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+                            </svg>
+                          )}
                         </button>
-                      </div>
-                    </form>
+                      </form>
+                    </div>
                   </div>
                 )}
-
-              </div>
+              </>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-gray-300 italic">
+              <div className="flex flex-col items-center justify-center h-full text-gray-300 italic p-12">
                 <p>Select an event to view full details</p>
               </div>
             )}
