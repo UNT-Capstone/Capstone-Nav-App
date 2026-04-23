@@ -34,7 +34,6 @@ interface DBEvent {
   taggedFriends: { id: string; userId: string; user: UNTFriend }[];
 }
 
-// Official UNT calendar event shape
 interface UNTOfficialEvent {
   id: number;
   title: string;
@@ -96,7 +95,7 @@ const CommentNode: React.FC<CommentNodeProps> = ({ comment, allComments, level, 
 // --- MAIN COMPONENT ---
 interface UNTEventsPageProps {
   initialUserName: string;
-  currentUserId: string; // pass the real DB user id from session
+  currentUserId: string;
 }
 
 const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentUserId }) => {
@@ -104,47 +103,32 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
-  // --- STATE ---
   const [view, setView] = useState<"official" | "user" | "my-events">("official");
   const [officialEvents, setOfficialEvents] = useState<UNTOfficialEvent[]>([]);
   const [activeEventId, setActiveEventId] = useState<string | number | null>(null);
   const [officialLoading, setOfficialLoading] = useState(true);
-
-  // --- EDITING STATE ---
   const [isEditing, setIsEditing] = useState(false);
   const [editEventId, setEditEventId] = useState<string | null>(null);
-
-  // --- FRIEND TAGGING STATE ---
   const [showFriendPicker, setShowFriendPicker] = useState(false);
   const [selectedFriends, setSelectedFriends] = useState<UNTFriend[]>([]);
-
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
-    title: "",
-    date: "",
-    time: "",
-    location: "",
-    description: "",
-    lat: 33.2108,
-    lng: -97.1459
+    title: "", date: "", time: "", location: "", description: "",
+    lat: 33.2108, lng: -97.1459
   });
-
   const [searchQuery, setSearchQuery] = useState("");
   const [showForum, setShowForum] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [replyingTo, setReplyingTo] = useState<DBComment | null>(null);
+  const [routeLoading, setRouteLoading] = useState(false);
 
   // ─── tRPC QUERIES ──────────────────────────────────────────────────────────
-
-  const { data: friends = [] } = useQuery(
-    trpc.getFriends.queryOptions()
-  );
+  const { data: friends = [] } = useQuery(trpc.getFriends.queryOptions());
 
   const { data: communityEvents = [], isLoading: communityLoading } = useQuery(
     trpc.getCommunityEvents.queryOptions()
   );
 
-  // Only fetch comments when we're viewing a community/user event (string id) and forum is open
   const activeIsDB = typeof activeEventId === 'string';
 
   const { data: comments = [] } = useQuery(
@@ -155,7 +139,6 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
   );
 
   // ─── tRPC MUTATIONS ────────────────────────────────────────────────────────
-
   const createEvent = useMutation(
     trpc.createCommunityEvent.mutationOptions({
       onSuccess: () => {
@@ -205,14 +188,14 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
     fetchEvents();
   }, []);
 
-  // Pick-on-map flow: restore draft from localStorage after redirect back
+  // Restore map-pick draft
   useEffect(() => {
     const pickedCoord = localStorage.getItem("unt_last_picked_coord");
     const savedDraft = localStorage.getItem("unt_event_draft");
     if (pickedCoord) {
       const { lat, lng } = JSON.parse(pickedCoord);
       const draft = savedDraft ? JSON.parse(savedDraft) : formData;
-      setFormData({ ...draft, lat, lng });
+      setFormData({ ...draft, lat: parseFloat(lat), lng: parseFloat(lng) });
       setShowForm(true);
       setView("user");
       localStorage.removeItem("unt_last_picked_coord");
@@ -222,11 +205,35 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
 
   // ─── HANDLERS ──────────────────────────────────────────────────────────────
 
+  // Mirrors handleGetDirections in the map — gets user location first then navigates
+  // passing fromLat/fromLng in the URL so the map uses the correct origin
   const handleGoToMap = (event: UNTOfficialEvent | DBEvent) => {
     const isOfficial = 'first_date' in event;
-    const lat = isOfficial ? (event.geo?.latitude ?? "33.2108") : event.lat;
-    const lng = isOfficial ? (event.geo?.longitude ?? "-97.1459") : event.lng;
-    router.push(`/home?event=${encodeURIComponent(event.title)}&lat=${lat}&lng=${lng}`);
+    const destLat = isOfficial
+      ? parseFloat(event.geo?.latitude ?? "33.2108")
+      : (event as DBEvent).lat;
+    const destLng = isOfficial
+      ? parseFloat(event.geo?.longitude ?? "-97.1459")
+      : (event as DBEvent).lng;
+
+    setRouteLoading(true);
+
+    const navigate = (fromLat?: number, fromLng?: number) => {
+      setRouteLoading(false);
+      const base = `/home?event=${encodeURIComponent(event.title)}&lat=${destLat}&lng=${destLng}`;
+      const withOrigin = fromLat && fromLng ? `${base}&fromLat=${fromLat}&fromLng=${fromLng}` : base;
+      router.push(withOrigin);
+    };
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => navigate(pos.coords.latitude, pos.coords.longitude),
+        () => navigate(), // denied — map will fall back to its own watchPosition
+        { timeout: 5000, enableHighAccuracy: true }
+      );
+    } else {
+      navigate();
+    }
   };
 
   const handlePickOnMap = () => {
@@ -242,13 +249,9 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
     setIsEditing(true);
     setEditEventId(event.id);
     setFormData({
-      title: event.title,
-      date,
-      time,
-      location: event.location,
-      description: event.description,
-      lat: event.lat,
-      lng: event.lng
+      title: event.title, date, time,
+      location: event.location, description: event.description,
+      lat: event.lat, lng: event.lng
     });
     setSelectedFriends(event.taggedFriends.map(t => t.user));
     setShowForm(true);
@@ -261,24 +264,15 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
 
     if (isEditing && editEventId) {
       updateEvent.mutate({
-        id: editEventId,
-        title: formData.title,
-        description: formData.description,
-        location: formData.location,
-        date: dateISO,
-        lat: formData.lat,
-        lng: formData.lng,
-        taggedFriendIds
+        id: editEventId, title: formData.title, description: formData.description,
+        location: formData.location, date: dateISO,
+        lat: formData.lat, lng: formData.lng, taggedFriendIds
       });
     } else {
       createEvent.mutate({
-        title: formData.title,
-        description: formData.description,
-        location: formData.location,
-        date: dateISO,
-        lat: formData.lat,
-        lng: formData.lng,
-        taggedFriendIds
+        title: formData.title, description: formData.description,
+        location: formData.location, date: dateISO,
+        lat: formData.lat, lng: formData.lng, taggedFriendIds
       });
     }
   };
@@ -302,8 +296,6 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
   };
 
   // ─── FILTERED DATA LOGIC ───────────────────────────────────────────────────
-
-  // "My Events": events I created OR events where I was tagged
   const myInvolvedEvents = useMemo(() => {
     return communityEvents.filter(ev =>
       ev.createdById === currentUserId ||
@@ -461,9 +453,10 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
                   )}
                   <button
                     onClick={() => handleGoToMap(activeEvent as any)}
-                    className="px-8 py-5 bg-[#00853E] text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex-grow text-center hover:bg-[#006a31] shadow-lg transition-all"
+                    disabled={routeLoading}
+                    className="px-8 py-5 bg-[#00853E] text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex-grow text-center hover:bg-[#006a31] shadow-lg transition-all disabled:opacity-60"
                   >
-                    🗺️ Route on Map
+                    {routeLoading ? "📍 Getting Location..." : "🗺️ Route on Map"}
                   </button>
                 </div>
 
@@ -539,7 +532,6 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
                 <input required type="time" className="p-3 md:p-4 bg-gray-100 rounded-lg md:rounded-2xl outline-none text-sm" value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })} />
               </div>
 
-              {/* Friend Tagging */}
               <div className="space-y-2">
                 <label className="text-[8px] md:text-[10px] font-black uppercase text-gray-400 ml-2">Tag Friends</label>
                 <div className="flex flex-wrap gap-1.5 mb-1">
@@ -568,7 +560,6 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
                 )}
               </div>
 
-              {/* Location */}
               <div className="space-y-2">
                 <input required placeholder="Location Name" className="w-full p-3 bg-gray-100 rounded-lg outline-none text-sm" value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} />
                 <button type="button" onClick={handlePickOnMap} className="w-full py-2 bg-gray-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-[#00853E] transition-all flex items-center justify-center gap-2">

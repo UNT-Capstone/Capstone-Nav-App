@@ -216,12 +216,27 @@ export default function UNTLiveMapInner() {
     return () => navigator.geolocation.clearWatch(id);
   }, []);
 
+  // ─── KEY FIX: read fromLat/fromLng from URL if present (passed by events page)
+  // This ensures the route starts from the user's actual location at the time
+  // they clicked "Route on Map", not from wherever userPosition happens to be
+  // when this page finishes loading.
   useEffect(() => {
     const lat = searchParams.get("lat");
     const lng = searchParams.get("lng");
+    const fromLat = searchParams.get("fromLat");
+    const fromLng = searchParams.get("fromLng");
+
     if (lat && lng) {
       const dest: [number, number] = [parseFloat(lat), parseFloat(lng)];
-      setFrozenRouteStart(userPosition ?? defaultPosition);
+
+      if (fromLat && fromLng) {
+        // Use the location captured at click time — reliable and immediate
+        setFrozenRouteStart([parseFloat(fromLat), parseFloat(fromLng)]);
+      } else {
+        // Fallback: use live userPosition if available, else campus default
+        setFrozenRouteStart(userPosition ?? defaultPosition);
+      }
+
       setDestination(dest);
     }
   }, [searchParams]);
@@ -231,6 +246,7 @@ export default function UNTLiveMapInner() {
     getNearestLocation(userPosition[0], userPosition[1]).then(setNearestLocationName);
   }, [userPosition]);
 
+  // This is the existing working handler used by the search bar — unchanged
   const handleGetDirections = (location: any) => {
     if (!location) return;
     setFrozenRouteStart(userPosition ?? defaultPosition);
