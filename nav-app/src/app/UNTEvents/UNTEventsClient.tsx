@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTRPC } from "@/src/trpc/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-// --- INTERFACES ---
+
 interface UNTFriend {
   id: string;
   name: string;
@@ -92,7 +92,7 @@ const CommentNode: React.FC<CommentNodeProps> = ({ comment, allComments, level, 
   );
 };
 
-// --- MAIN COMPONENT ---
+
 interface UNTEventsPageProps {
   initialUserName: string;
   currentUserId: string;
@@ -122,23 +122,43 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
   const [replyingTo, setReplyingTo] = useState<DBComment | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
 
-  // ─── tRPC QUERIES ──────────────────────────────────────────────────────────
+ 
   const { data: friends = [] } = useQuery(trpc.getFriends.queryOptions());
 
   const { data: communityEvents = [], isLoading: communityLoading } = useQuery(
     trpc.getCommunityEvents.queryOptions()
   );
 
-  const activeIsDB = typeof activeEventId === 'string';
 
+  const activeIsDB = typeof activeEventId === 'string' && activeEventId.length > 0;
+
+
+  // Resolve the full DB event object for the currently selected event (if any)
+  const activeDBEvent = useMemo((): DBEvent | null => {
+    if (!activeIsDB) return null;
+    return (communityEvents as DBEvent[]).find(e => e.id === activeEventId) ?? null;
+  }, [activeIsDB, activeEventId, communityEvents]);
+
+  // Discussion is private: only the creator or a tagged friend can see it
+  const canAccessDiscussion = useMemo((): boolean => {
+    if (!activeDBEvent) return false;
+    const isCreator = activeDBEvent.createdById === currentUserId;
+    const isTagged = activeDBEvent.taggedFriends.some(t => t.userId === currentUserId);
+    return isCreator || isTagged;
+  }, [activeDBEvent, currentUserId]);
+
+  
   const { data: comments = [] } = useQuery(
     trpc.getComments.queryOptions(
       { eventId: activeEventId as string },
-      { enabled: activeIsDB && showForum }
+      {
+        enabled: activeIsDB && showForum && canAccessDiscussion,
+        staleTime: 0,
+      }
     )
   );
 
-  // ─── tRPC MUTATIONS ────────────────────────────────────────────────────────
+  
   const createEvent = useMutation(
     trpc.createCommunityEvent.mutationOptions({
       onSuccess: () => {
@@ -157,19 +177,23 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
     })
   );
 
+ 
   const postCommentMutation = useMutation(
     trpc.postComment.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: trpc.getComments.queryKey({ eventId: activeEventId as string })
-        });
+      onSuccess: async () => {
         setNewComment("");
         setReplyingTo(null);
+        await queryClient.invalidateQueries({
+          queryKey: trpc.getComments.queryKey({ eventId: activeEventId as string })
+        });
+        await queryClient.refetchQueries({
+          queryKey: trpc.getComments.queryKey({ eventId: activeEventId as string })
+        });
       }
     })
   );
 
-  // ─── FETCH OFFICIAL UNT EVENTS ─────────────────────────────────────────────
+  
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -188,7 +212,7 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
     fetchEvents();
   }, []);
 
-  // Restore map-pick draft
+  
   useEffect(() => {
     const pickedCoord = localStorage.getItem("unt_last_picked_coord");
     const savedDraft = localStorage.getItem("unt_event_draft");
@@ -203,32 +227,22 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
     }
   }, []);
 
-  // ─── HANDLERS ──────────────────────────────────────────────────────────────
-
-  // Mirrors handleGetDirections in the map — gets user location first then navigates
-  // passing fromLat/fromLng in the URL so the map uses the correct origin
+  
   const handleGoToMap = (event: UNTOfficialEvent | DBEvent) => {
     const isOfficial = 'first_date' in event;
-    const destLat = isOfficial
-      ? parseFloat(event.geo?.latitude ?? "33.2108")
-      : (event as DBEvent).lat;
-    const destLng = isOfficial
-      ? parseFloat(event.geo?.longitude ?? "-97.1459")
-      : (event as DBEvent).lng;
-
+    const destLat = isOfficial ? parseFloat(event.geo?.latitude ?? "33.2108") : (event as DBEvent).lat;
+    const destLng = isOfficial ? parseFloat(event.geo?.longitude ?? "-97.1459") : (event as DBEvent).lng;
     setRouteLoading(true);
-
     const navigate = (fromLat?: number, fromLng?: number) => {
       setRouteLoading(false);
       const base = `/home?event=${encodeURIComponent(event.title)}&lat=${destLat}&lng=${destLng}`;
       const withOrigin = fromLat && fromLng ? `${base}&fromLat=${fromLat}&fromLng=${fromLng}` : base;
       router.push(withOrigin);
     };
-
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => navigate(pos.coords.latitude, pos.coords.longitude),
-        () => navigate(), // denied — map will fall back to its own watchPosition
+        () => navigate(),
         { timeout: 5000, enableHighAccuracy: true }
       );
     } else {
@@ -261,7 +275,6 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
     e.preventDefault();
     const dateISO = `${formData.date}T${formData.time}`;
     const taggedFriendIds = selectedFriends.map(f => f.id);
-
     if (isEditing && editEventId) {
       updateEvent.mutate({
         id: editEventId, title: formData.title, description: formData.description,
@@ -285,9 +298,10 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
     setFormData({ title: "", date: "", time: "", location: "", description: "", lat: 33.2108, lng: -97.1459 });
   };
 
+  
   const handlePostComment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim() || !activeEventId || !activeIsDB) return;
+    if (!newComment.trim() || !activeIsDB || !canAccessDiscussion) return;
     postCommentMutation.mutate({
       eventId: activeEventId as string,
       text: newComment,
@@ -295,11 +309,11 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
     });
   };
 
-  // ─── FILTERED DATA LOGIC ───────────────────────────────────────────────────
+  
   const myInvolvedEvents = useMemo(() => {
     return communityEvents.filter(ev =>
       ev.createdById === currentUserId ||
-      ev.taggedFriends.some(t => t.userId === currentUserId)
+      ev.taggedFriends.some((t: { userId: string }) => t.userId === currentUserId)
     );
   }, [communityEvents, currentUserId]);
 
@@ -324,13 +338,17 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <p className="text-[#00853E] font-black uppercase tracking-widest text-sm animate-pulse">🦅 Fetching UNT Data...</p>
+      <p className="text-[#00853E] font-black uppercase tracking-widest text-sm animate-pulse">
+        🦅 Fetching UNT Data...
+      </p>
     </div>
   );
 
   return (
     <main className="min-h-screen pb-12 px-4 md:px-8 bg-gray-50 text-gray-900 font-sans relative z-0 overflow-hidden pt-8">
       <div className="max-w-6xl mx-auto">
+
+        {}
         <header className="mb-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-center gap-2 bg-gray-200/50 p-1.5 rounded-2xl w-fit">
             <button onClick={() => { setView("official"); setActiveEventId(null); }} className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${view === "official" ? "bg-[#00853E] text-white shadow-lg" : "text-gray-500 hover:text-[#00853E]"}`}>UNT Events</button>
@@ -345,7 +363,9 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
           </div>
         </header>
 
+        {}
         <div className="grid grid-cols-1 md:grid-cols-12 bg-white rounded-[2.5rem] shadow-2xl overflow-hidden md:h-[calc(100vh-340px)] border border-gray-100">
+
           {/* Event List */}
           <div className="md:col-span-4 border-r overflow-y-auto bg-[#fafafa]">
             {filteredEvents.length === 0 ? (
@@ -386,6 +406,8 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
           <div className="md:col-span-8 p-6 md:p-12 overflow-y-auto bg-white flex flex-col relative">
             {activeEvent ? (
               <div className="h-full flex flex-col animate-in fade-in slide-in-from-bottom-4">
+
+                {/* Badges */}
                 <div className="mb-6 flex flex-wrap gap-2 items-center">
                   {isOfficialEvent(activeEvent) ? (
                     <span className="bg-[#00853E] text-white text-[9px] px-3 py-1.5 rounded-full font-black tracking-widest">🦅 VERIFIED OFFICIAL UNT EVENT</span>
@@ -411,8 +433,10 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
                   )}
                 </div>
 
+                {/* Title */}
                 <h2 className="text-3xl md:text-5xl font-black mb-8 text-gray-900 tracking-tighter leading-tight">{activeEvent.title}</h2>
 
+                {/* Date / Location card */}
                 <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 mb-10 flex items-center gap-6">
                   <div className="text-center border-r pr-6 border-gray-200">
                     {isOfficialEvent(activeEvent) ? (
@@ -435,6 +459,7 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
                   </div>
                 </div>
 
+                {/* Description */}
                 <div className="prose prose-lg text-gray-600 flex-grow leading-relaxed mb-10">
                   {isOfficialEvent(activeEvent)
                     ? (activeEvent.description_text?.replace(/<[^>]*>?/gm, "") || "Join fellow Mean Green students for this event!")
@@ -442,14 +467,22 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
                   }
                 </div>
 
+                {/* Action buttons */}
                 <div className="flex flex-wrap gap-4 pt-10 border-t mt-auto">
-                  {isDBEvent(activeEvent) && (
+                  {/* Discussion button — only visible to creator and tagged friends */}
+                  {isDBEvent(activeEvent) && canAccessDiscussion && (
                     <button
                       onClick={() => setShowForum(true)}
                       className="px-8 py-5 bg-white text-gray-900 border-2 border-gray-900 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-gray-900 hover:text-white transition-all shadow-md"
                     >
                       💬 Discussion
                     </button>
+                  )}
+                  {/* Locked pill shown to everyone else on DB events */}
+                  {isDBEvent(activeEvent) && !canAccessDiscussion && (
+                    <div className="px-8 py-5 bg-gray-100 text-gray-400 border-2 border-gray-200 rounded-2xl font-black uppercase text-[10px] tracking-widest cursor-not-allowed select-none">
+                      🔒 Discussion (Invite Only)
+                    </div>
                   )}
                   <button
                     onClick={() => handleGoToMap(activeEvent as any)}
@@ -460,13 +493,23 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
                   </button>
                 </div>
 
-                {/* Discussion Forum Overlay */}
-                {showForum && isDBEvent(activeEvent) && (
+                {/* ─── DISCUSSION FORUM OVERLAY ─────────────────────────────
+                    Double-gated: button above only shows for allowed users,
+                    and this render also checks canAccessDiscussion as a safety net.
+                ──────────────────────────────────────────────────────────── */}
+                {showForum && isDBEvent(activeEvent) && canAccessDiscussion && (
                   <div className="absolute inset-0 bg-white z-20 p-8 flex flex-col animate-in slide-in-from-right duration-300">
                     <div className="flex justify-between items-center mb-8 pb-4 border-b">
-                      <h3 className="text-2xl font-black uppercase text-[#00853E]">Discussion</h3>
+                      <div>
+                        <h3 className="text-2xl font-black uppercase text-[#00853E]">Discussion</h3>
+                        <p className="text-[9px] text-gray-400 uppercase font-black mt-0.5 tracking-widest">
+                          🔒 Private — Creator &amp; Tagged Friends Only
+                        </p>
+                      </div>
                       <button onClick={() => { setShowForum(false); setReplyingTo(null); }} className="font-black text-gray-400 uppercase text-xs hover:text-black">✕ Close</button>
                     </div>
+
+                    {}
                     <div className="flex-grow overflow-y-auto space-y-6 mb-6 pr-2">
                       {comments.length === 0 ? (
                         <p className="text-gray-400 italic text-center py-20">No messages yet. Start the buzz!</p>
@@ -483,6 +526,8 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
                         ))
                       )}
                     </div>
+
+                    {}
                     <form onSubmit={handlePostComment} className="flex flex-col gap-2">
                       {replyingTo && (
                         <div className="flex justify-between items-center bg-green-50 px-4 py-2 rounded-t-xl border-t border-x border-green-100">
@@ -494,13 +539,13 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
                         <input
                           value={newComment}
                           onChange={e => setNewComment(e.target.value)}
-                          placeholder={replyingTo ? "Write your nested reply..." : "Type a message..."}
+                          placeholder={replyingTo ? "Write your reply..." : "Type a message..."}
                           className={`flex-grow bg-gray-100 p-5 rounded-2xl outline-none text-sm focus:ring-2 focus:ring-[#00853E] ${replyingTo ? 'rounded-tl-none border-l-2 border-[#00853E]' : ''}`}
                         />
                         <button
                           type="submit"
-                          disabled={postCommentMutation.isPending}
-                          className="bg-[#00853E] text-white px-8 rounded-2xl font-black uppercase text-[10px] disabled:opacity-50"
+                          disabled={!newComment.trim() || postCommentMutation.isPending}
+                          className="bg-[#00853E] text-white px-8 rounded-2xl font-black uppercase text-[10px] disabled:opacity-50 hover:bg-[#006a31] transition-all"
                         >
                           {postCommentMutation.isPending ? '...' : 'Send'}
                         </button>
@@ -508,6 +553,7 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
                     </form>
                   </div>
                 )}
+
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-gray-300 italic">
@@ -518,7 +564,7 @@ const UNTEventsPage: React.FC<UNTEventsPageProps> = ({ initialUserName, currentU
         </div>
       </div>
 
-      {/* Create / Edit Event Modal */}
+      {}
       {showForm && (
         <div className="fixed inset-0 bg-black/60 z-[2001] flex flex-col items-center justify-start pt-20 md:pt-32 p-3 md:p-4 overflow-y-auto">
           <div className="bg-white rounded-xl mt-10 md:rounded-[2.5rem] p-4 md:p-8 w-full max-w-sm md:max-w-lg shadow-2xl animate-in zoom-in-95 duration-200">
