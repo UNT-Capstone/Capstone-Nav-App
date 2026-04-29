@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     for (const cls of toNotify) {
       if (!cls.user?.email) continue;
       await resend.emails.send({
-        from: "UNT Navigator <onboarding@resend.dev>",
+        from: "UNT Navigator <noreply@untnavigation.me>",
         to: cls.user.email,
         subject: `Reminder: ${cls.name} starts in 15 mins!`,
         html: `<p>Head to <b>${cls.location}</b>. Your class starts at ${targetTimeStr}.</p>`
