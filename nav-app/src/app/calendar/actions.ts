@@ -54,7 +54,7 @@ export async function addClass(formData: FormData) {
     const notificationTime = new Date(scheduledDate.getTime() - 15 * 60000);
 
     await resend.emails.send({
-      from: "UNT Navigator <onboarding@resend.dev>",
+      from: "UNT Navigator <noreply@untnavigation.me>",
       to: session.user.email,
       subject: `Upcoming Class: ${name}`,
       scheduled_at: notificationTime.toISOString(),
