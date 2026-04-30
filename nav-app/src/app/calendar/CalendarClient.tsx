@@ -6,10 +6,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Loader2, Calendar, MapPin, Clock, Trash2, Navigation } from "lucide-react";
 import { addClass, getClasses, deleteClass } from "./actions";
 
-/**
- * Options for the custom Day Picker UI.
- * Values match the shorthand used in the formatted time string.
- */
+
 const DAY_OPTIONS = [
   { label: "M", value: "M" },
   { label: "T", value: "Tu" },
@@ -20,6 +17,9 @@ const DAY_OPTIONS = [
   { label: "Su", value: "Su" },
 ];
 
+
+const DAY_ORDER = ["M", "Tu", "W", "Th", "F", "Sa", "Su"];
+
 export default function CalendarClientPage() {
   const router = useRouter();
   const [classes, setClasses] = useState<any[]>([]);
@@ -28,11 +28,7 @@ export default function CalendarClientPage() {
   const [adding, setAdding] = useState(false);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
 
-  /**
-   * Loads both the user's schedule and the UNT building list.
-   * Uses separate try/catch blocks so a database error doesn't
-   * prevent the campus building dropdown from loading.
-   */
+ 
   const loadData = async () => {
     setFetching(true);
     try {
@@ -66,13 +62,12 @@ export default function CalendarClientPage() {
   }, []);
 
   const toggleDay = (val: string) => {
-    setSelectedDays((prev) => (prev.includes(val) ? prev.filter((d) => d !== val) : [...prev, val]));
+    setSelectedDays((prev) =>
+      prev.includes(val) ? prev.filter((d) => d !== val) : [...prev, val]
+    );
   };
 
-  /**
-   * Handles adding a new class. Formats the time string (e.g., "MWF 2:30 PM")
-   * before sending it to the database.
-   */
+ 
   async function handleAddClass(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (selectedDays.length === 0) return alert("Select at least one day!");
@@ -92,7 +87,13 @@ export default function CalendarClientPage() {
     const h = parseInt(hours);
     const ampm = h >= 12 ? "PM" : "AM";
     const displayHours = h % 12 || 12;
-    const formattedTime = `${selectedDays.join("")} ${displayHours}:${mins.padStart(2, "0")} ${ampm}`;
+
+    // Sort days into canonical order so "FMW" becomes "MWF" consistently
+    const sortedDays = [...selectedDays].sort(
+      (a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b)
+    );
+
+    const formattedTime = `${sortedDays.join("")} ${displayHours}:${mins.padStart(2, "0")} ${ampm}`;
 
     formData.set("time", formattedTime);
 
@@ -109,15 +110,32 @@ export default function CalendarClientPage() {
     }
   }
 
-  /**
-   * Passes coordinates to the main map page to initiate navigation.
-   */
+  
   const handleNavigate = (locationName: string) => {
     const building = buildings.find((b) => b.name === locationName);
-    if (building) {
-      router.push(`/home?lat=${building.lat}&lng=${building.lng}`);
-    } else {
+
+    if (!building) {
+      // Building not found in local list — fall back to name-based lookup
       router.push(`/home?location=${encodeURIComponent(locationName)}`);
+      return;
+    }
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+ 
+          router.push(
+            `/home?lat=${building.lat}&lng=${building.lng}&fromLat=${pos.coords.latitude}&fromLng=${pos.coords.longitude}`
+          );
+        },
+        () => {
+          // GPS denied or failed — map will fall back to campus default as start
+          router.push(`/home?lat=${building.lat}&lng=${building.lng}`);
+        }
+      );
+    } else {
+      // Geolocation not supported — just send destination
+      router.push(`/home?lat=${building.lat}&lng=${building.lng}`);
     }
   };
 
@@ -126,6 +144,7 @@ export default function CalendarClientPage() {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">My Schedule</h1>
 
+        {/* Add Class Form */}
         <form
           onSubmit={handleAddClass}
           className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm mb-10 space-y-6"
@@ -155,6 +174,7 @@ export default function CalendarClientPage() {
             </select>
           </div>
 
+          {/* Custom Day Selection */}
           <div className="space-y-3">
             <p className="text-sm font-bold text-gray-500 ml-2">Select Days</p>
             <div className="flex flex-wrap gap-2">
@@ -175,6 +195,7 @@ export default function CalendarClientPage() {
             </div>
           </div>
 
+          {/* Start Time Input */}
           <div className="space-y-3">
             <p className="text-sm font-bold text-gray-500 ml-2">Class Start Time</p>
             <input
@@ -196,6 +217,7 @@ export default function CalendarClientPage() {
           </button>
         </form>
 
+        {/* Display List of Classes */}
         <div className="space-y-4">
           {fetching ? (
             <div className="flex justify-center py-10">
