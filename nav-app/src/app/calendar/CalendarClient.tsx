@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { Plus, Loader2, Calendar, MapPin, Clock, Trash2, Navigation } from "lucide-react";
 import { addClass, getClasses, deleteClass } from "./actions";
 
-
 const DAY_OPTIONS = [
   { label: "M", value: "M" },
   { label: "T", value: "Tu" },
@@ -17,38 +16,31 @@ const DAY_OPTIONS = [
   { label: "Su", value: "Su" },
 ];
 
-
 const DAY_ORDER = ["M", "Tu", "W", "Th", "F", "Sa", "Su"];
 
 export default function CalendarClientPage() {
   const router = useRouter();
   const [classes, setClasses] = useState<any[]>([]);
-  const [buildings, setBuildings] = useState<any[]>([]);
   const [fetching, setFetching] = useState(true);
   const [adding, setAdding] = useState(false);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [buildings, setBuildings] = useState<any[]>([]);
 
- 
   const loadData = async () => {
     setFetching(true);
     try {
-      // 1. Fetch user classes from Prisma (via Server Action)
       try {
         const classData = await getClasses();
         setClasses(classData || []);
       } catch (err) {
-        // Log the error but keep the app running
         console.error("Database connection failed (Prisma):", err);
         setClasses([]);
       }
 
-      // 2. Fetch hardcoded UNT building data from the local API route
       const buildingRes = await fetch("/api/buildings");
       if (buildingRes.ok) {
         const buildingData = await buildingRes.json();
         setBuildings(buildingData);
-      } else {
-        console.error("Failed to fetch building list from API.");
       }
     } catch (err) {
       console.error("General initialization error:", err);
@@ -67,7 +59,6 @@ export default function CalendarClientPage() {
     );
   };
 
- 
   async function handleAddClass(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (selectedDays.length === 0) return alert("Select at least one day!");
@@ -82,26 +73,23 @@ export default function CalendarClientPage() {
       return;
     }
 
-    // Convert 24h format (input type="time") to 12h format for the display string
     const [hours, mins] = rawTime.split(":");
     const h = parseInt(hours);
     const ampm = h >= 12 ? "PM" : "AM";
     const displayHours = h % 12 || 12;
 
-    // Sort days into canonical order so "FMW" becomes "MWF" consistently
     const sortedDays = [...selectedDays].sort(
       (a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b)
     );
 
     const formattedTime = `${sortedDays.join("")} ${displayHours}:${mins.padStart(2, "0")} ${ampm}`;
-
     formData.set("time", formattedTime);
 
     try {
       await addClass(formData);
-      form.reset(); // Clear the form text inputs
-      setSelectedDays([]); // Clear the day picker
-      await loadData(); // Refresh the list
+      form.reset();
+      setSelectedDays([]);
+      await loadData();
     } catch (err) {
       console.error("Submission failed:", err);
       alert("Failed to add class. Check database connection.");
@@ -110,32 +98,20 @@ export default function CalendarClientPage() {
     }
   }
 
-  
   const handleNavigate = (locationName: string) => {
-    const building = buildings.find((b) => b.name === locationName);
-
-    if (!building) {
-      // Building not found in local list — fall back to name-based lookup
-      router.push(`/home?location=${encodeURIComponent(locationName)}`);
-      return;
-    }
-
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
- 
           router.push(
-            `/home?lat=${building.lat}&lng=${building.lng}&fromLat=${pos.coords.latitude}&fromLng=${pos.coords.longitude}`
+            `/home?search=${encodeURIComponent(locationName)}&fromLat=${pos.coords.latitude}&fromLng=${pos.coords.longitude}`
           );
         },
         () => {
-          // GPS denied or failed — map will fall back to campus default as start
-          router.push(`/home?lat=${building.lat}&lng=${building.lng}`);
+          router.push(`/home?search=${encodeURIComponent(locationName)}`);
         }
       );
     } else {
-      // Geolocation not supported — just send destination
-      router.push(`/home?lat=${building.lat}&lng=${building.lng}`);
+      router.push(`/home?search=${encodeURIComponent(locationName)}`);
     }
   };
 
@@ -144,7 +120,6 @@ export default function CalendarClientPage() {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">My Schedule</h1>
 
-        {/* Add Class Form */}
         <form
           onSubmit={handleAddClass}
           className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm mb-10 space-y-6"
@@ -156,7 +131,6 @@ export default function CalendarClientPage() {
               required
               className="px-5 py-3 rounded-2xl border border-gray-200 outline-none focus:ring-2 focus:ring-[#00853E] bg-white transition-all"
             />
-
             <select
               name="location"
               required
@@ -174,7 +148,6 @@ export default function CalendarClientPage() {
             </select>
           </div>
 
-          {/* Custom Day Selection */}
           <div className="space-y-3">
             <p className="text-sm font-bold text-gray-500 ml-2">Select Days</p>
             <div className="flex flex-wrap gap-2">
@@ -195,7 +168,6 @@ export default function CalendarClientPage() {
             </div>
           </div>
 
-          {/* Start Time Input */}
           <div className="space-y-3">
             <p className="text-sm font-bold text-gray-500 ml-2">Class Start Time</p>
             <input
@@ -217,7 +189,6 @@ export default function CalendarClientPage() {
           </button>
         </form>
 
-        {/* Display List of Classes */}
         <div className="space-y-4">
           {fetching ? (
             <div className="flex justify-center py-10">

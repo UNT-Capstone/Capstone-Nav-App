@@ -89,7 +89,6 @@ const ORSRouting = ({ start, end, setDirections, activeIndex, setActiveIndex }: 
 
   useEffect(() => {
     if (!start || !end) return;
-
     let cancelled = false;
 
     const fetchRoute = async () => {
@@ -101,16 +100,13 @@ const ORSRouting = ({ start, end, setDirections, activeIndex, setActiveIndex }: 
             coordinates: [[start[1], start[0]], [end[1], end[0]]],
           }),
         });
-
         const data = await res.json();
         if (cancelled) return;
         if (!data?.features?.length) return;
 
         routeDataRef.current = data.features;
-
         routeLayersRef.current.forEach((l) => map.removeLayer(l));
         routeLayersRef.current = [];
-
         setDirections(data.features[0]?.properties?.segments?.[0]?.steps || []);
 
         if (!map.getPane("routePane")) {
@@ -177,6 +173,7 @@ export default function UNTLiveMapInner() {
   const [directions, setDirections] = useState<any[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [autoSearch, setAutoSearch] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -185,7 +182,6 @@ export default function UNTLiveMapInner() {
       iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
       shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
     });
-
     if (localStorage.getItem("unt_picking_mode") === "true") {
       setIsPickingMode(true);
     }
@@ -196,7 +192,6 @@ export default function UNTLiveMapInner() {
       setLocationError("Geolocation not supported");
       return;
     }
-
     const id = navigator.geolocation.watchPosition(
       (pos) => {
         setLocationError(null);
@@ -206,37 +201,30 @@ export default function UNTLiveMapInner() {
         setLocationError(err.message);
         console.error("Geolocation error:", err);
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
-
     return () => navigator.geolocation.clearWatch(id);
   }, []);
 
-  // ─── KEY FIX: read fromLat/fromLng from URL if present (passed by events page)
-  // This ensures the route starts from the user's actual location at the time
-  // they clicked "Route on Map", not from wherever userPosition happens to be
-  // when this page finishes loading.
   useEffect(() => {
     const lat = searchParams.get("lat");
     const lng = searchParams.get("lng");
     const fromLat = searchParams.get("fromLat");
     const fromLng = searchParams.get("fromLng");
+    const search = searchParams.get("search");
 
-    if (lat && lng) {
+    if (search) {
+      const from = fromLat && fromLng
+        ? ([parseFloat(fromLat), parseFloat(fromLng)] as [number, number])
+        : (userPosition ?? defaultPosition);
+      setFrozenRouteStart(from);
+      setAutoSearch(search);
+    } else if (lat && lng) {
       const dest: [number, number] = [parseFloat(lat), parseFloat(lng)];
-
-      if (fromLat && fromLng) {
-        // Use the location captured at click time — reliable and immediate
-        setFrozenRouteStart([parseFloat(fromLat), parseFloat(fromLng)]);
-      } else {
-        // Fallback: use live userPosition if available, else campus default
-        setFrozenRouteStart(userPosition ?? defaultPosition);
-      }
-
+      const from = fromLat && fromLng
+        ? ([parseFloat(fromLat), parseFloat(fromLng)] as [number, number])
+        : (userPosition ?? defaultPosition);
+      setFrozenRouteStart(from);
       setDestination(dest);
     }
   }, [searchParams]);
@@ -246,12 +234,16 @@ export default function UNTLiveMapInner() {
     getNearestLocation(userPosition[0], userPosition[1]).then(setNearestLocationName);
   }, [userPosition]);
 
-  // This is the existing working handler used by the search bar — unchanged
   const handleGetDirections = (location: any) => {
     if (!location) return;
     setFrozenRouteStart(userPosition ?? defaultPosition);
     setDestination([location.lat, location.lng]);
     setSelectedLocation(null);
+  };
+
+  const handleSearchSelect = (location: any) => {
+    setSelectedLocation(location);
+    setAutoSearch(undefined);
   };
 
   const handleMapPick = (lat: number, lng: number) => {
@@ -273,7 +265,7 @@ export default function UNTLiveMapInner() {
     <div className="h-screen w-screen relative">
       {!isPickingMode && (
         <div className="fixed top-32 md:top-36 left-1/2 -translate-x-1/2 z-[500] w-[92vw] md:w-[420px] px-2 md:px-0">
-          <UNTSearchBar onSelect={setSelectedLocation} />
+          <UNTSearchBar onSelect={handleSearchSelect} autoSearch={autoSearch} />
         </div>
       )}
 
